@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plot Multiple Postcodes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100vh;
+            width: 100vw;
+            position: absolute;
+        }
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+            cursor: move;
+            width: 200px;
+        }
+        input, button {
+            padding: 5px;
+            margin: 3px;
+            font-size: 12px;
+            width: 90%;
+        }
+        h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="control-panel" id="controlPanel">
+        <h3>Plot Postcodes</h3>
+        <input type="text" id="postcodes" placeholder="Enter postcodes">
+        <button onclick="plotMultiplePostcodes()">Plot</button>
+        <input type="file" id="fileInput" accept=".txt">
+        <button onclick="uploadFile()">Upload</button>
+        <p id="coordinates"></p>
+    </div>
+
+
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+
+        var markers = [];
+
+
+        async function fetchJSON(url) {
+            try {
+                let response = await fetch(url);
+                let contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.error("Invalid JSON response from:", url);
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching JSON:", error);
+                return null;
+            }
+        }
+
+
+        async function plotMultiplePostcodes(postcodes = null) {
+            if (!postcodes) {
+                postcodes = document.getElementById('postcodes').value.split(',').map(pc => pc.trim()).filter(pc => pc);
+            }
+            if (postcodes.length === 0) {
+                alert("Please enter at least one postcode.");
+                return;
+            }
+
+
+            clearMarkers();
+            let latSum = 0, lonSum = 0, count = 0;
+
+
+            for (const postcode of postcodes) {
+                var url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(postcode)}`;
+                let data = await fetchJSON(url);
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    console.warn(`Postcode not found: ${postcode}`);
+                    continue;
+                }
+
+
+                var lat = parseFloat(data[0].lat);
+                var lon = parseFloat(data[0].lon);
+                latSum += lat;
+                lonSum += lon;
+                count++;
+
+
+                var marker = L.marker([lat, lon]).addTo(map)
+                    .bindPopup(`<b>${postcode}</b><br>Lat: ${lat}, Lon: ${lon}`)
+                    .openPopup();
+                markers.push(marker);
+            }
+            
+            if (count > 0) {
+                map.setView([latSum / count, lonSum / count], 10, {animate: true});
+            }
+        }
+
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) {
+                alert("Please select a file.");
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                const postcodes = text.split(',').map(pc => pc.trim()).filter(pc => pc);
+                plotMultiplePostcodes(postcodes);
+            };
+            reader.readAsText(file);
+        }
+
+
+        function clearMarkers() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+        }
+
+
+        // Make the control panel draggable
+        var panel = document.getElementById("controlPanel");
+        var offsetX, offsetY, isDragging = false;
+
+
+        panel.addEventListener("mousedown", function(e) {
+            isDragging = true;
+            offsetX = e.clientX - panel.offsetLeft;
+            offsetY = e.clientY - panel.offsetTop;
+        });
+
+
+        document.addEventListener("mousemove", function(e) {
+            if (isDragging) {
+                panel.style.left = e.clientX - offsetX + "px";
+                panel.style.top = e.clientY - offsetY + "px";
+                panel.style.transform = "none";
+            }
+        });
+
+
+        document.addEventListener("mouseup", function() {
+            isDragging = false;
+        });
+    </script>
+</body>
+</html>
