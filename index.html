@@ -3,28 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Political Party Website with Tabs</title>
+  <title>Newport & Islwyn Branch Reform UK</title>
+  <!-- Load Supabase client library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
-    /* General Styles */
+    /* Basic Reset & Layout */
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 20px;
       background-color: #f9f9f9;
     }
     .container {
-      width: 90%;
       max-width: 1000px;
-      margin: 50px auto 20px;
+      margin: 50px auto;
       background: #fff;
       padding: 20px;
-      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
       position: relative;
     }
-    /* Title Block */
+    /* Logo */
+    #logo {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 80px;
+      height: auto;
+      z-index: 120;
+    }
+    /* Title Block (Left-Aligned) */
     .title-block {
-      text-align: center;
+      text-align: left;
       margin-bottom: 20px;
     }
     .title-block h1 {
@@ -32,7 +42,7 @@
       font-size: 2rem;
       color: #333;
     }
-    /* Admin Link (top right) */
+    /* Admin Link */
     #adminLink {
       position: fixed;
       top: 10px;
@@ -45,12 +55,12 @@
     #adminLink:hover {
       text-decoration: underline;
     }
-    /* Tab Navigation */
+    /* Tabs */
     .tabs {
       display: flex;
       list-style: none;
       padding: 0;
-      margin: 0 0 10px;
+      margin: 0 0 10px 0;
       border-bottom: 2px solid #333;
     }
     .tabs li {
@@ -70,11 +80,10 @@
       border: 2px solid #333;
       border-bottom: none;
     }
-    /* Hide Admin-Only Tabs by default */
     .admin-tab {
       display: none;
     }
-    /* Tab Content Sections */
+    /* Tab Content */
     .tab-content {
       display: none;
       border: 2px solid #333;
@@ -85,95 +94,84 @@
     .tab-content.active {
       display: block;
     }
-    /* Form Styling for Entry Tabs */
+    /* Form Styles */
     form input[type="text"],
     form input[type="date"],
     form textarea {
       width: 100%;
       padding: 8px;
       margin: 5px 0;
-      box-sizing: border-box;
       border: 1px solid #ccc;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     form button {
       padding: 10px 20px;
-      background: #333;
+      background: #007BFF;
       color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      transition: background 0.3s;
+      margin-top: 5px;
     }
     form button:hover {
-      background: #555;
+      background: #0056b3;
     }
-    /* Section styling within Add Entries tab */
-    .entry-section {
-      margin-bottom: 20px;
-    }
-    .entry-section h3 {
-      margin-bottom: 10px;
-      color: #333;
-    }
-    /* Individual item styling */
-    .item {
+    /* Items / Posts */
+    .post, .item {
       border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
       border-radius: 4px;
-      padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-      background-color: #fafafa;
+      background: #fafafa;
     }
-    .item h3 {
-      margin-top: 0;
+    .post h2, .item h3 {
+      margin: 5px 0;
     }
-    /* Committee Member Specific Styling */
-    .committee-member {
+    /* Collapsible Blog Entry */
+    .blog-entry .blog-header {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
+      cursor: pointer;
     }
+    .blog-header .toggle-arrow {
+      display: inline-block;
+      width: 1.2em;
+      font-size: 1.2em;
+      margin-bottom: 5px;
+    }
+    .blog-header p {
+      margin: 0;
+      font-size: 0.9em;
+      color: #666;
+    }
+    .blog-content {
+      display: none;
+      margin-top: 10px;
+    }
+    /* Controls (Edit/Delete) */
+    .controls {
+      margin-top: 10px;
+    }
+    .controls button {
+      margin-right: 5px;
+      padding: 5px 10px;
+      font-size: 0.9em;
+    }
+    /* Committee Member Image Sizing */
     .committee-img {
       width: 80px;
       height: 80px;
+      max-width: 80px;
+      max-height: 80px;
       border-radius: 50%;
       object-fit: cover;
       margin-right: 15px;
     }
-    .committee-info {
-      flex: 1;
-    }
-    /* Drop Zone Styling for Drag & Drop Image Upload */
-    .drop-zone {
-      border: 2px dashed #ccc;
-      border-radius: 4px;
-      width: 100px;
-      height: 100px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    .drop-zone.drop-zone--over {
-      border-color: #333;
-    }
-    .drop-zone img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .drop-zone p {
-      margin: 0;
-      font-size: 0.8rem;
-      color: #666;
-    }
-    /* Modal (Login Window) Styling */
+    /* Modal Login */
     .modal {
-      display: none; /* Hidden by default */
+      display: none;
       position: fixed;
       z-index: 120;
       left: 0;
@@ -181,10 +179,10 @@
       width: 100%;
       height: 100%;
       overflow: auto;
-      background-color: rgba(0, 0, 0, 0.4);
+      background-color: rgba(0,0,0,0.4);
     }
     .modal-content {
-      background-color: #fefefe;
+      background: #fff;
       margin: 15% auto;
       padding: 20px;
       border: 1px solid #888;
@@ -196,8 +194,8 @@
     .close {
       color: #aaa;
       position: absolute;
-      right: 10px;
       top: 5px;
+      right: 10px;
       font-size: 28px;
       font-weight: bold;
       cursor: pointer;
@@ -206,14 +204,21 @@
     .close:focus {
       color: black;
     }
+    /* Admin-only sections */
+    .admin-only {
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <!-- Admin Link (Always Visible) -->
+  <!-- Logo -->
+  <img id="logo" src="https://assets.nationbuilder.com/reformuk/sites/10/meta_images/original/PROFILEPIC600.jpg?1720530274" alt="Logo">
+  
+  <!-- Admin Link -->
   <a href="#" id="adminLink">Admin</a>
 
   <div class="container">
-    <!-- Title Block -->
+    <!-- Title Block (Left-Aligned) -->
     <div class="title-block">
       <h1>Newport & Islwyn Branch Reform UK</h1>
     </div>
@@ -223,42 +228,51 @@
       <li class="active" data-tab="blog">Blog</li>
       <li data-tab="events">Events</li>
       <li data-tab="committee">Committee Members</li>
+      <li data-tab="links">Links</li>
       <li data-tab="entry" class="admin-tab">Add Entries</li>
       <li data-tab="addCommittee" class="admin-tab">Add Committee</li>
     </ul>
 
     <!-- Tab Content Sections -->
-
-    <!-- Blog Tab: Displays Blog Posts Only -->
+    <!-- Blog Tab -->
     <div id="blog" class="tab-content active">
       <h2>Blog</h2>
-      <div id="blogPosts">
-        <!-- Blog posts will be rendered here -->
-      </div>
+      <div id="blogPosts">Loading...</div>
     </div>
 
-    <!-- Events Tab: Displays Event List Only -->
+    <!-- Events Tab -->
     <div id="events" class="tab-content">
       <h2>Events</h2>
-      <div id="eventList">
-        <!-- Events will be rendered here -->
-      </div>
+      <div id="eventList">Loading...</div>
     </div>
 
     <!-- Committee Members Tab -->
     <div id="committee" class="tab-content">
       <h2>Committee Members</h2>
-      <div id="committeeList">
-        <!-- Committee members will be rendered here -->
+      <div id="committeeList">Loading...</div>
+    </div>
+
+    <!-- Links Tab -->
+    <div id="links" class="tab-content">
+      <h2>Links</h2>
+      <div id="linksList">Loading...</div>
+      <div id="linkFormContainer" class="admin-only">
+        <h3>Add New Link</h3>
+        <form id="linkForm">
+          <input type="text" id="linkName" placeholder="Link Name" required>
+          <input type="text" id="linkURL" placeholder="Link URL" required>
+          <button type="submit">Add Link</button>
+        </form>
       </div>
     </div>
 
-    <!-- Add Entries Tab: Contains Blog and Event Entry Forms (Admin Only) -->
+    <!-- Add Entries Tab (Admin Only) -->
     <div id="entry" class="tab-content admin-tab">
       <h2>Add New Entries</h2>
       <div class="entry-section">
         <h3>New Blog Post</h3>
         <form id="blogForm">
+          <input type="date" id="blogDate" placeholder="Date" required>
           <input type="text" id="blogTitle" placeholder="Title" required>
           <textarea id="blogContent" placeholder="Enter blog content here..." rows="4" required></textarea>
           <button type="submit">Add Blog Post</button>
@@ -275,14 +289,15 @@
       </div>
     </div>
 
-    <!-- Add Committee Tab: Contains the Committee Member Entry Form with Drag & Drop Image (Admin Only) -->
+    <!-- Add Committee Tab (Admin Only) -->
     <div id="addCommittee" class="tab-content admin-tab">
       <h2>Add Committee Member</h2>
       <form id="committeeForm">
         <input type="text" id="committeeName" placeholder="Member Name" required>
         <input type="text" id="committeePosition" placeholder="Position" required>
+        <input type="text" id="committeeContact" placeholder="Contact" required>
         <div id="committeeDropZone" class="drop-zone">
-          <img id="committeePreview" src="https://via.placeholder.com/80" alt="Drop image here">
+          <img id="committeePreview" src="https://placehold.co/80" alt="Drop image here">
           <p>Drag & drop an image here</p>
         </div>
         <button type="submit">Add Committee Member</button>
@@ -300,179 +315,406 @@
     </div>
   </div>
 
-  <!-- JavaScript for Data Persistence, UI Rendering, and Functionality -->
+  <!-- Application Script -->
   <script>
-    /***** Data Persistence Setup *****/
-    // Default data arrays
-    const defaultBlogPosts = [
-      {
-        title: "Welcome to Our Party",
-        content: "This is our inaugural blog post, introducing our vision and mission."
-      },
-      {
-        title: "Upcoming Policies",
-        content: "Discover the new policies we are planning to introduce to serve the community better."
+    // Initialize Supabase client using your details
+    const supabaseUrl = "https://hvpyeaouttceulkcowhr.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2cHllYW91dHRjZXVsa2Nvd2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMDE1NDIsImV4cCI6MjA1NDY3NzU0Mn0.rO5Q6lIcEjpmvpTy1yD2nqJi_wmuSVhl1Ojf0qOEgIU";
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    /***** Global Data Arrays *****/
+    let blogPostsData = [];
+    let eventsData = [];
+    let committeeMembersData = [];
+    let linksData = [];
+
+    /***** Global Admin Mode Flag *****/
+    let adminMode = false;
+
+    /***** Fetch Functions *****/
+    async function fetchBlogPosts() {
+      const { data, error } = await supabaseClient
+        .from("blog_posts")
+        .select("*")
+        .order("date", { ascending: false });
+      if (error) {
+        document.getElementById("blogPosts").innerText = "Error: " + error.message;
+        console.error("Error fetching blog posts:", error);
+      } else {
+        blogPostsData = data;
+        renderBlogPosts();
       }
-    ];
-
-    const defaultEventsData = [
-      {
-        date: "2025-03-15",
-        title: "Annual General Meeting",
-        description: "Join us for our annual general meeting where we discuss the roadmap for the coming year."
-      },
-      {
-        date: "2025-04-10",
-        title: "Campaign Rally",
-        description: "Be a part of our campaign rally and support our efforts to bring change."
+    }
+    async function fetchEvents() {
+      const { data, error } = await supabaseClient
+        .from("events")
+        .select("*")
+        .order("date", { ascending: false });
+      if (error) {
+        document.getElementById("eventList").innerText = "Error: " + error.message;
+        console.error("Error fetching events:", error);
+      } else {
+        eventsData = data;
+        renderEvents();
       }
-    ];
-
-    const defaultCommitteeMembers = [
-      { name: "John Doe", position: "President", imageUrl: "https://via.placeholder.com/80" },
-      { name: "Jane Smith", position: "Vice President", imageUrl: "https://via.placeholder.com/80" },
-      { name: "Alice Johnson", position: "Secretary", imageUrl: "https://via.placeholder.com/80" }
-    ];
-
-    // Load data from localStorage (or use default if not present)
-    let blogPostsData = localStorage.getItem('blogPosts')
-      ? JSON.parse(localStorage.getItem('blogPosts'))
-      : defaultBlogPosts;
-    localStorage.setItem('blogPosts', JSON.stringify(blogPostsData));
-
-    let eventsData = localStorage.getItem('eventsData')
-      ? JSON.parse(localStorage.getItem('eventsData'))
-      : defaultEventsData;
-    localStorage.setItem('eventsData', JSON.stringify(eventsData));
-
-    let committeeMembersData = localStorage.getItem('committeeMembers')
-      ? JSON.parse(localStorage.getItem('committeeMembers'))
-      : defaultCommitteeMembers;
-    localStorage.setItem('committeeMembers', JSON.stringify(committeeMembersData));
+    }
+    async function fetchCommitteeMembers() {
+      const { data, error } = await supabaseClient
+        .from("committee_members")
+        .select("*")
+        .order("id", { ascending: false });
+      if (error) {
+        document.getElementById("committeeList").innerText = "Error: " + error.message;
+        console.error("Error fetching committee members:", error);
+      } else {
+        committeeMembersData = data;
+        renderCommitteeMembers();
+      }
+    }
+    async function fetchLinks() {
+      const { data, error } = await supabaseClient
+        .from("links")
+        .select("*")
+        .order("id", { ascending: false });
+      if (error) {
+        document.getElementById("linksList").innerText = "Error: " + error.message;
+        console.error("Error fetching links:", error);
+      } else {
+        linksData = data;
+        renderLinks();
+      }
+    }
 
     /***** Rendering Functions *****/
     function renderBlogPosts() {
       const container = document.getElementById('blogPosts');
-      container.innerHTML = "";
+      if (!blogPostsData || blogPostsData.length === 0) {
+        container.innerText = "No blog posts found.";
+        return;
+      }
+      let html = "";
       blogPostsData.forEach(post => {
-        let postDiv = document.createElement('div');
-        postDiv.classList.add('item');
-        postDiv.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p>`;
-        container.appendChild(postDiv);
+        html += `<div class="post" data-id="${post.id}">
+                   <p><em>${post.date}</em></p>
+                   <h2>${post.title}</h2>
+                   <p>${post.content}</p>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEdit(${post.id})">Edit</button>
+                     <button onclick="deleteBlogPost(${post.id})">Delete</button>
+                   </div>`;
+        }
+        html += `</div>`;
       });
+      container.innerHTML = html;
     }
 
     function renderEvents() {
       const container = document.getElementById('eventList');
-      container.innerHTML = "";
+      if (!eventsData || eventsData.length === 0) {
+        container.innerText = "No events found.";
+        return;
+      }
+      let html = "";
       eventsData.forEach(event => {
-        let eventDiv = document.createElement('div');
-        eventDiv.classList.add('item');
-        eventDiv.innerHTML = `<h3>${event.title}</h3>
-                              <p><strong>Date:</strong> ${event.date}</p>
-                              <p>${event.description}</p>`;
-        container.appendChild(eventDiv);
+        html += `<div class="post" data-id="${event.id}">
+                   <p><strong>${event.date}</strong></p>
+                   <h2>${event.title}</h2>
+                   <p>${event.description}</p>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditEvent(${event.id})">Edit</button>
+                     <button onclick="deleteEvent(${event.id})">Delete</button>
+                   </div>`;
+        }
+        html += `</div>`;
       });
+      container.innerHTML = html;
     }
 
     function renderCommitteeMembers() {
       const container = document.getElementById('committeeList');
-      container.innerHTML = "";
+      if (!committeeMembersData || committeeMembersData.length === 0) {
+        container.innerText = "No committee members found.";
+        return;
+      }
+      let html = "";
       committeeMembersData.forEach(member => {
-        let memberDiv = document.createElement('div');
-        memberDiv.classList.add('item');
-        memberDiv.innerHTML = `
-          <div class="committee-member">
-            <img src="${member.imageUrl}" alt="Profile Image of ${member.name}" class="committee-img">
-            <div class="committee-info">
-              <h3>${member.name}</h3>
-              <p><strong>Position:</strong> ${member.position}</p>
-            </div>
-          </div>`;
-        container.appendChild(memberDiv);
+        html += `<div class="post" data-id="${member.id}">
+                   <h3>${member.name}</h3>
+                   <p><strong>Position:</strong> ${member.position}</p>
+                   <p><strong>Contact:</strong> ${member.contact}</p>`;
+        if (member.image_url) {
+          html += `<img src="${member.image_url}" alt="${member.name}" class="committee-img">`;
+        }
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditCommittee(${member.id})">Edit</button>
+                     <button onclick="deleteCommitteeMember(${member.id})">Delete</button>
+                   </div>`;
+        }
+        html += `</div>`;
       });
+      container.innerHTML = html;
     }
 
-    // Initial render on page load
-    renderBlogPosts();
-    renderEvents();
-    renderCommitteeMembers();
+    function renderLinks() {
+      const container = document.getElementById('linksList');
+      if (!linksData || linksData.length === 0) {
+        container.innerText = "No links found.";
+        return;
+      }
+      let html = "";
+      linksData.forEach(link => {
+        html += `<div class="post" data-id="${link.id}">
+                   <h3>${link.name}</h3>
+                   <p><a href="${link.url}" target="_blank">${link.url}</a></p>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditLink(${link.id})">Edit</button>
+                     <button onclick="deleteLink(${link.id})">Delete</button>
+                   </div>`;
+        }
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+    }
 
-    /***** Functions to Add New Entries & Persist Data *****/
-    function addBlogPost(title, content) {
-      const post = { title, content };
-      blogPostsData.unshift(post);
-      localStorage.setItem('blogPosts', JSON.stringify(blogPostsData));
+    /***** Inline Editing Functions *****/
+    function startEdit(postId) {
+      const post = blogPostsData.find(p => p.id === postId);
+      if (!post) return;
+      const postDiv = document.querySelector(`.post[data-id="${postId}"]`);
+      postDiv.innerHTML = `<form class="edit-form" onsubmit="submitEdit(event, ${postId})">
+                             <input type="date" id="editDate_${postId}" value="${post.date}" required>
+                             <input type="text" id="editTitle_${postId}" value="${post.title}" required>
+                             <textarea id="editContent_${postId}" rows="4" required>${post.content}</textarea>
+                             <button type="submit">Save</button>
+                             <button type="button" onclick="cancelEdit(${postId})">Cancel</button>
+                           </form>`;
+    }
+    async function submitEdit(e, postId) {
+      e.preventDefault();
+      const newDate = document.getElementById(`editDate_${postId}`).value;
+      const newTitle = document.getElementById(`editTitle_${postId}`).value;
+      const newContent = document.getElementById(`editContent_${postId}`).value;
+      const { error } = await supabaseClient
+        .from("blog_posts")
+        .update({ date: newDate, title: newTitle, content: newContent })
+        .eq("id", postId);
+      if (error) {
+        alert("Error updating post: " + error.message);
+        console.error("Error updating post:", error);
+      } else {
+        fetchBlogPosts();
+      }
+    }
+    function cancelEdit(postId) {
       renderBlogPosts();
     }
-
-    function addEvent(title, date, description) {
-      const event = { title, date, description };
-      eventsData.unshift(event);
-      localStorage.setItem('eventsData', JSON.stringify(eventsData));
+    function startEditEvent(eventId) {
+      const eventData = eventsData.find(e => e.id === eventId);
+      if (!eventData) return;
+      const eventDiv = document.querySelector(`.post[data-id="${eventId}"]`);
+      eventDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditEvent(event, ${eventId})">
+                             <input type="text" id="editEventTitle_${eventId}" value="${eventData.title}" required>
+                             <input type="date" id="editEventDate_${eventId}" value="${eventData.date}" required>
+                             <textarea id="editEventDescription_${eventId}" rows="4" required>${eventData.description}</textarea>
+                             <button type="submit">Save</button>
+                             <button type="button" onclick="cancelEditEvent(${eventId})">Cancel</button>
+                           </form>`;
+    }
+    async function submitEditEvent(e, eventId) {
+      e.preventDefault();
+      const newTitle = document.getElementById(`editEventTitle_${eventId}`).value;
+      const newDate = document.getElementById(`editEventDate_${eventId}`).value;
+      const newDescription = document.getElementById(`editEventDescription_${eventId}`).value;
+      const { error } = await supabaseClient
+        .from("events")
+        .update({ title: newTitle, date: newDate, description: newDescription })
+        .eq("id", eventId);
+      if (error) {
+        alert("Error updating event: " + error.message);
+        console.error("Error updating event:", error);
+      } else {
+        fetchEvents();
+      }
+    }
+    function cancelEditEvent(eventId) {
       renderEvents();
     }
-
-    function addCommitteeMember(name, position, imageUrl) {
-      const member = { name, position, imageUrl };
-      committeeMembersData.unshift(member);
-      localStorage.setItem('committeeMembers', JSON.stringify(committeeMembersData));
+    function startEditCommittee(memberId) {
+      const member = committeeMembersData.find(m => m.id === memberId);
+      if (!member) return;
+      const memberDiv = document.querySelector(`.post[data-id="${memberId}"]`);
+      memberDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditCommittee(event, ${memberId})">
+                             <input type="text" id="editCommitteeName_${memberId}" value="${member.name}" required>
+                             <input type="text" id="editCommitteePosition_${memberId}" value="${member.position}" required>
+                             <input type="text" id="editCommitteeContact_${memberId}" value="${member.contact}" required>
+                             <input type="text" id="editCommitteeImageUrl_${memberId}" value="${member.image_url}" required>
+                             <button type="submit">Save</button>
+                             <button type="button" onclick="cancelEditCommittee(${memberId})">Cancel</button>
+                           </form>`;
+    }
+    async function submitEditCommittee(e, memberId) {
+      e.preventDefault();
+      const newName = document.getElementById(`editCommitteeName_${memberId}`).value;
+      const newPosition = document.getElementById(`editCommitteePosition_${memberId}`).value;
+      const newContact = document.getElementById(`editCommitteeContact_${memberId}`).value;
+      const newImageUrl = document.getElementById(`editCommitteeImageUrl_${memberId}`).value;
+      const { error } = await supabaseClient
+        .from("committee_members")
+        .update({ name: newName, position: newPosition, contact: newContact, image_url: newImageUrl })
+        .eq("id", memberId);
+      if (error) {
+        alert("Error updating committee member: " + error.message);
+        console.error("Error updating committee member:", error);
+      } else {
+        fetchCommitteeMembers();
+      }
+    }
+    function cancelEditCommittee(memberId) {
       renderCommitteeMembers();
     }
+    function startEditLink(linkId) {
+      const link = linksData.find(l => l.id === linkId);
+      if (!link) return;
+      const linkDiv = document.querySelector(`.post[data-id="${linkId}"]`);
+      linkDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditLink(event, ${linkId})">
+                             <input type="text" id="editLinkName_${linkId}" value="${link.name}" required>
+                             <input type="text" id="editLinkURL_${linkId}" value="${link.url}" required>
+                             <button type="submit">Save</button>
+                             <button type="button" onclick="cancelEditLink(${linkId})">Cancel</button>
+                           </form>`;
+    }
+    async function submitEditLink(e, linkId) {
+      e.preventDefault();
+      const newName = document.getElementById(`editLinkName_${linkId}`).value;
+      const newURL = document.getElementById(`editLinkURL_${linkId}`).value;
+      const { error } = await supabaseClient
+        .from("links")
+        .update({ name: newName, url: newURL })
+        .eq("id", linkId);
+      if (error) {
+        alert("Error updating link: " + error.message);
+        console.error("Error updating link:", error);
+      } else {
+        fetchLinks();
+      }
+    }
+    function cancelEditLink(linkId) {
+      renderLinks();
+    }
 
-    /***** Form Submission Event Listeners *****/
-    document.getElementById('blogForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      const title = document.getElementById('blogTitle').value;
-      const content = document.getElementById('blogContent').value;
-      addBlogPost(title, content);
-      document.getElementById('blogTitle').value = '';
-      document.getElementById('blogContent').value = '';
+    /***** Form Submission for Adding New Data *****/
+    async function addBlogPost(date, title, content) {
+      const { error } = await supabaseClient
+        .from("blog_posts")
+        .insert([{ date, title, content }]);
+      if (error) {
+        alert("Error adding blog post: " + error.message);
+        console.error("Error adding blog post:", error);
+      } else {
+        fetchBlogPosts();
+      }
+    }
+    async function addEvent(title, date, description) {
+      const { error } = await supabaseClient
+        .from("events")
+        .insert([{ title, date, description }]);
+      if (error) {
+        alert("Error adding event: " + error.message);
+        console.error("Error adding event:", error);
+      } else {
+        fetchEvents();
+      }
+    }
+    async function addCommitteeMember(name, position, contact, image_url) {
+      const { error } = await supabaseClient
+        .from("committee_members")
+        .insert([{ name, position, contact, image_url }]);
+      if (error) {
+        alert("Error adding committee member: " + error.message);
+        console.error("Error adding committee member:", error);
+      } else {
+        fetchCommitteeMembers();
+      }
+    }
+    async function addLink(name, url) {
+      const { error } = await supabaseClient
+        .from("links")
+        .insert([{ name, url }]);
+      if (error) {
+        alert("Error adding link: " + error.message);
+        console.error("Error adding link:", error);
+      } else {
+        fetchLinks();
+      }
+    }
+
+    // New Blog Post Form Submission
+    document.getElementById("blogForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const date = document.getElementById("blogDate").value;
+      const title = document.getElementById("blogTitle").value;
+      const content = document.getElementById("blogContent").value;
+      addBlogPost(date, title, content);
+      document.getElementById("blogDate").value = "";
+      document.getElementById("blogTitle").value = "";
+      document.getElementById("blogContent").value = "";
     });
-
-    document.getElementById('eventForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      const title = document.getElementById('eventTitle').value;
-      const date = document.getElementById('eventDate').value;
-      const description = document.getElementById('eventDescription').value;
+    // New Event Form Submission
+    document.getElementById("eventForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const title = document.getElementById("eventTitle").value;
+      const date = document.getElementById("eventDate").value;
+      const description = document.getElementById("eventDescription").value;
       addEvent(title, date, description);
-      document.getElementById('eventTitle').value = '';
-      document.getElementById('eventDate').value = '';
-      document.getElementById('eventDescription').value = '';
+      document.getElementById("eventTitle").value = "";
+      document.getElementById("eventDate").value = "";
+      document.getElementById("eventDescription").value = "";
     });
-
-    document.getElementById('committeeForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      const name = document.getElementById('committeeName').value;
-      const position = document.getElementById('committeePosition').value;
-      const imageUrl = document.getElementById('committeePreview').src;
-      addCommitteeMember(name, position, imageUrl);
-      document.getElementById('committeeName').value = '';
-      document.getElementById('committeePosition').value = '';
-      document.getElementById('committeePreview').src = 'https://via.placeholder.com/80';
+    // New Committee Member Form Submission
+    document.getElementById("committeeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const name = document.getElementById("committeeName").value;
+      const position = document.getElementById("committeePosition").value;
+      const contact = document.getElementById("committeeContact").value;
+      const imageUrl = document.getElementById("committeePreview").src;
+      addCommitteeMember(name, position, contact, imageUrl);
+      document.getElementById("committeeName").value = "";
+      document.getElementById("committeePosition").value = "";
+      document.getElementById("committeeContact").value = "";
+      document.getElementById("committeePreview").src = "https://placehold.co/80";
+    });
+    // New Link Form Submission
+    document.getElementById("linkForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const name = document.getElementById("linkName").value;
+      const url = document.getElementById("linkURL").value;
+      addLink(name, url);
+      document.getElementById("linkName").value = "";
+      document.getElementById("linkURL").value = "";
     });
 
     /***** Drag & Drop for Committee Image Upload *****/
-    const dropZone = document.getElementById('committeeDropZone');
-    const previewImage = document.getElementById('committeePreview');
-
-    dropZone.addEventListener('dragover', function(e) {
+    const dropZone = document.getElementById("committeeDropZone");
+    const previewImage = document.getElementById("committeePreview");
+    dropZone.addEventListener("dragover", function(e) {
       e.preventDefault();
-      dropZone.classList.add('drop-zone--over');
+      dropZone.classList.add("drop-zone--over");
     });
-
-    dropZone.addEventListener('dragleave', function(e) {
+    dropZone.addEventListener("dragleave", function(e) {
       e.preventDefault();
-      dropZone.classList.remove('drop-zone--over');
+      dropZone.classList.remove("drop-zone--over");
     });
-
-    dropZone.addEventListener('drop', function(e) {
+    dropZone.addEventListener("drop", function(e) {
       e.preventDefault();
-      dropZone.classList.remove('drop-zone--over');
+      dropZone.classList.remove("drop-zone--over");
       const files = e.dataTransfer.files;
       if (files.length > 0) {
         const file = files[0];
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
           const reader = new FileReader();
           reader.onload = function(e) {
             previewImage.src = e.target.result;
@@ -485,67 +727,138 @@
     });
 
     /***** Tab Switching Functionality *****/
-    const tabs = document.querySelectorAll('.tabs li');
-    const tabContents = document.querySelectorAll('.tab-content');
-
+    const tabs = document.querySelectorAll(".tabs li");
+    const tabContents = document.querySelectorAll(".tab-content");
     tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.getAttribute('data-tab');
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(content => content.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(target).classList.add('active');
+      tab.addEventListener("click", () => {
+        const target = tab.getAttribute("data-tab");
+        tabs.forEach(t => t.classList.remove("active"));
+        tabContents.forEach(content => content.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(target).classList.add("active");
       });
     });
 
     /***** ADMIN LOGIN FUNCTIONALITY *****/
-    const adminLink = document.getElementById('adminLink');
-    const loginModal = document.getElementById('loginModal');
-    const modalClose = document.getElementById('modalClose');
-    const loginButton = document.getElementById('loginButton');
-    const adminPassword = document.getElementById('adminPassword');
-
-    // Open modal when Admin link is clicked
-    adminLink.addEventListener('click', function(e) {
+    const adminLink = document.getElementById("adminLink");
+    const loginModal = document.getElementById("loginModal");
+    const modalClose = document.getElementById("modalClose");
+    const loginButton = document.getElementById("loginButton");
+    const adminPassword = document.getElementById("adminPassword");
+    
+    adminLink.addEventListener("click", function(e) {
       e.preventDefault();
       loginModal.style.display = "block";
       adminPassword.value = "";
       adminPassword.focus();
     });
-
-    // Close modal when the close button is clicked
-    modalClose.addEventListener('click', function() {
+    modalClose.addEventListener("click", function() {
       loginModal.style.display = "none";
     });
-
-    // Check password when login button is clicked
-    loginButton.addEventListener('click', function() {
-      if (adminPassword.value === "1812") {
-        // Reveal admin-only tabs and content
-        document.querySelectorAll('.admin-tab').forEach(el => {
+    loginButton.addEventListener("click", async function() {
+      // Retrieve the admin password from the "password" table
+      const { data, error } = await supabaseClient
+        .from("password")
+        .select("*")
+        .limit(1);
+      if (error) {
+        alert("Error retrieving password: " + error.message);
+        console.error("Error retrieving password:", error);
+        return;
+      }
+      // Assume the table "password" has one record with a column named "password"
+      if (data.length > 0 && adminPassword.value === data[0].password) {
+        document.querySelectorAll(".admin-tab").forEach(el => {
           el.style.display = "";
-          el.classList.remove('admin-tab');
+          el.classList.remove("admin-tab");
         });
+        document.querySelectorAll(".admin-only").forEach(el => {
+          el.style.display = "block";
+        });
+        adminMode = true;
+        fetchBlogPosts();
+        fetchEvents();
+        fetchCommitteeMembers();
+        fetchLinks();
         loginModal.style.display = "none";
         alert("Admin mode enabled.");
       } else {
         alert("Incorrect password. Please try again.");
       }
     });
-
-    // Close modal if user clicks outside the modal content
-    window.addEventListener('click', function(event) {
+    window.addEventListener("click", function(event) {
       if (event.target === loginModal) {
         loginModal.style.display = "none";
       }
     });
+
+    // On initial page load, fetch all data from Supabase
+    fetchBlogPosts();
+    fetchEvents();
+    fetchCommitteeMembers();
+    fetchLinks();
+
+    /***** Expose Inline Editing and Delete Functions to Global Scope *****/
+    window.startEdit = startEdit;
+    window.deleteBlogPost = function(postId) {
+      supabaseClient
+        .from("blog_posts")
+        .delete()
+        .eq("id", postId)
+        .then(({ error }) => {
+          if (error) {
+            alert("Error deleting post: " + error.message);
+            console.error("Error deleting post:", error);
+          } else {
+            fetchBlogPosts();
+          }
+        });
+    };
+    window.startEditEvent = startEditEvent;
+    window.deleteEvent = function(eventId) {
+      supabaseClient
+        .from("events")
+        .delete()
+        .eq("id", eventId)
+        .then(({ error }) => {
+          if (error) {
+            alert("Error deleting event: " + error.message);
+            console.error("Error deleting event:", error);
+          } else {
+            fetchEvents();
+          }
+        });
+    };
+    window.startEditCommittee = startEditCommittee;
+    window.deleteCommitteeMember = function(memberId) {
+      supabaseClient
+        .from("committee_members")
+        .delete()
+        .eq("id", memberId)
+        .then(({ error }) => {
+          if (error) {
+            alert("Error deleting committee member: " + error.message);
+            console.error("Error deleting committee member:", error);
+          } else {
+            fetchCommitteeMembers();
+          }
+        });
+    };
+    window.startEditLink = startEditLink;
+    window.deleteLink = function(linkId) {
+      supabaseClient
+        .from("links")
+        .delete()
+        .eq("id", linkId)
+        .then(({ error }) => {
+          if (error) {
+            alert("Error deleting link: " + error.message);
+            console.error("Error deleting link:", error);
+          } else {
+            fetchLinks();
+          }
+        });
+    };
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
