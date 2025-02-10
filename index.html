@@ -229,6 +229,7 @@
       <li data-tab="events">Events</li>
       <li data-tab="committee">Committee Members</li>
       <li data-tab="links">Links</li>
+      <li data-tab="minutes">Meeting Minutes</li>
       <li data-tab="entry" class="admin-tab">Add Entries</li>
       <li data-tab="addCommittee" class="admin-tab">Add Committee</li>
     </ul>
@@ -262,6 +263,22 @@
           <input type="text" id="linkName" placeholder="Link Name" required>
           <input type="text" id="linkURL" placeholder="Link URL" required>
           <button type="submit">Add Link</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Meeting Minutes Tab -->
+    <div id="minutes" class="tab-content">
+      <h2>Meeting Minutes</h2>
+      <div id="minutesList">Loading...</div>
+      <!-- Admin-only form for adding new meeting minutes -->
+      <div id="minutesFormContainer" class="admin-only">
+        <h3>Add New Meeting Minutes</h3>
+        <form id="minutesForm">
+          <input type="date" id="minutesDate" placeholder="Date" required>
+          <input type="text" id="minutesTitle" placeholder="Title" required>
+          <textarea id="minutesContent" placeholder="Enter minutes here..." rows="4" required></textarea>
+          <button type="submit">Add Minutes</button>
         </form>
       </div>
     </div>
@@ -336,6 +353,7 @@
     let eventsData = [];
     let committeeMembersData = [];
     let linksData = [];
+    let meetingMinutesData = [];
 
     /***** Global Admin Mode Flag *****/
     let adminMode = false;
@@ -391,6 +409,19 @@
       } else {
         linksData = data;
         renderLinks();
+      }
+    }
+    async function fetchMeetingMinutes() {
+      const { data, error } = await supabaseClient
+        .from("minutes")
+        .select("*")
+        .order("date", { ascending: false });
+      if (error) {
+        document.getElementById("minutesList").innerText = "Error: " + error.message;
+        console.error("Error fetching meeting minutes:", error);
+      } else {
+        meetingMinutesData = data;
+        renderMeetingMinutes();
       }
     }
 
@@ -489,6 +520,36 @@
           html += `<div class="controls">
                      <button onclick="startEditLink(${link.id})">Edit</button>
                      <button onclick="deleteLink(${link.id})">Delete</button>
+                   </div>`;
+        }
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderMeetingMinutes() {
+      const container = document.getElementById('minutesList');
+      if (!meetingMinutesData || meetingMinutesData.length === 0) {
+        container.innerText = "No meeting minutes found.";
+        return;
+      }
+      let html = "";
+      meetingMinutesData.forEach(record => {
+        html += `<div class="post" data-id="${record.id}">
+                   <div class="blog-entry">
+                     <div class="blog-header">
+                       <span class="toggle-arrow" onclick="toggleMinutes(${record.id}, event)">►</span>
+                       <p><em>${formatDate(record.date)}</em></p>
+                       <h2>${record.title}</h2>
+                     </div>
+                     <div id="minutes-content-${record.id}" class="blog-content" style="display:none;">
+                       <p>${record.minutes}</p>
+                     </div>
+                   </div>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditMinutes(${record.id})">Edit</button>
+                     <button onclick="deleteMinutes(${record.id})">Delete</button>
                    </div>`;
         }
         html += `</div>`;
@@ -621,6 +682,61 @@
     function cancelEditLink(linkId) {
       renderLinks();
     }
+    function toggleBlogEntry(postId, event) {
+      event.stopPropagation();
+      const contentElement = document.getElementById('blog-content-' + postId);
+      const arrow = event.target;
+      if (contentElement.style.display === 'none' || contentElement.style.display === '') {
+        contentElement.style.display = 'block';
+        arrow.textContent = '▼';
+      } else {
+        contentElement.style.display = 'none';
+        arrow.textContent = '►';
+      }
+    }
+    function toggleMinutes(recordId, event) {
+      event.stopPropagation();
+      const contentElement = document.getElementById('minutes-content-' + recordId);
+      const arrow = event.target;
+      if (contentElement.style.display === 'none' || contentElement.style.display === '') {
+        contentElement.style.display = 'block';
+        arrow.textContent = '▼';
+      } else {
+        contentElement.style.display = 'none';
+        arrow.textContent = '►';
+      }
+    }
+    function startEditMinutes(id) {
+      const record = meetingMinutesData.find(r => r.id === id);
+      if (!record) return;
+      const div = document.querySelector(`.post[data-id="${id}"]`);
+      div.innerHTML = `<form class="edit-form" onsubmit="submitEditMinutes(event, ${id})">
+                        <input type="date" id="editMinutesDate_${id}" value="${record.date}" required>
+                        <input type="text" id="editMinutesTitle_${id}" value="${record.title}" required>
+                        <textarea id="editMinutesContent_${id}" rows="4" required>${record.minutes}</textarea>
+                        <button type="submit">Save</button>
+                        <button type="button" onclick="cancelEditMinutes(${id})">Cancel</button>
+                      </form>`;
+    }
+    async function submitEditMinutes(e, id) {
+      e.preventDefault();
+      const newDate = document.getElementById(`editMinutesDate_${id}`).value;
+      const newTitle = document.getElementById(`editMinutesTitle_${id}`).value;
+      const newContent = document.getElementById(`editMinutesContent_${id}`).value;
+      const { error } = await supabaseClient
+        .from("minutes")
+        .update({ date: newDate, title: newTitle, minutes: newContent })
+        .eq("id", id);
+      if (error) {
+        alert("Error updating meeting minutes: " + error.message);
+        console.error("Error updating meeting minutes:", error);
+      } else {
+        fetchMeetingMinutes();
+      }
+    }
+    function cancelEditMinutes(id) {
+      renderMeetingMinutes();
+    }
 
     /***** Form Submission for Adding New Data *****/
     async function addBlogPost(date, title, content) {
@@ -667,6 +783,17 @@
         fetchLinks();
       }
     }
+    async function addMeetingMinutes(date, title, minutesContent) {
+      const { error } = await supabaseClient
+        .from("minutes")
+        .insert([{ date, title, minutes: minutesContent }]);
+      if (error) {
+        alert("Error adding meeting minutes: " + error.message);
+        console.error("Error adding meeting minutes:", error);
+      } else {
+        fetchMeetingMinutes();
+      }
+    }
 
     // New Blog Post Form Submission
     document.getElementById("blogForm").addEventListener("submit", function(e) {
@@ -711,6 +838,17 @@
       addLink(name, url);
       document.getElementById("linkName").value = "";
       document.getElementById("linkURL").value = "";
+    });
+    // New Meeting Minutes Form Submission (Admin Only)
+    document.getElementById("minutesForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const date = document.getElementById("minutesDate").value;
+      const title = document.getElementById("minutesTitle").value;
+      const minutesContent = document.getElementById("minutesContent").value;
+      addMeetingMinutes(date, title, minutesContent);
+      document.getElementById("minutesDate").value = "";
+      document.getElementById("minutesTitle").value = "";
+      document.getElementById("minutesContent").value = "";
     });
 
     /***** Drag & Drop for Committee Image Upload *****/
@@ -796,6 +934,7 @@
         fetchEvents();
         fetchCommitteeMembers();
         fetchLinks();
+        fetchMeetingMinutes();
         loginModal.style.display = "none";
         alert("Admin mode enabled.");
       } else {
@@ -813,6 +952,7 @@
     fetchEvents();
     fetchCommitteeMembers();
     fetchLinks();
+    fetchMeetingMinutes();
 
     /***** Expose Inline Editing and Delete Functions to Global Scope *****/
     window.startEdit = startEdit;
@@ -875,21 +1015,21 @@
           }
         });
     };
-
-    /***** Function to Toggle Blog Entry Collapse/Expand *****/
-    function toggleBlogEntry(postId, event) {
-      // Prevent the click from triggering any parent events
-      event.stopPropagation();
-      const contentElement = document.getElementById('blog-content-' + postId);
-      const arrow = event.target;
-      if (contentElement.style.display === 'none' || contentElement.style.display === '') {
-        contentElement.style.display = 'block';
-        arrow.textContent = '▼';
-      } else {
-        contentElement.style.display = 'none';
-        arrow.textContent = '►';
-      }
-    }
+    window.startEditMinutes = startEditMinutes;
+    window.deleteMinutes = function(id) {
+      supabaseClient
+        .from("minutes")
+        .delete()
+        .eq("id", id)
+        .then(({ error }) => {
+          if (error) {
+            alert("Error deleting meeting minutes: " + error.message);
+            console.error("Error deleting meeting minutes:", error);
+          } else {
+            fetchMeetingMinutes();
+          }
+        });
+    };
   </script>
 </body>
 </html>
