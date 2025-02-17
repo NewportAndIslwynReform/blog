@@ -225,7 +225,9 @@
 
     <!-- Tab Navigation -->
     <ul class="tabs">
-      <li class="active" data-tab="blog">Blog</li>
+      <!-- New Home tab appears first -->
+      <li class="active" data-tab="homeTab">Home</li>
+      <li data-tab="blog">Blog</li>
       <li data-tab="events">Events</li>
       <li data-tab="committee">Committee Members</li>
       <li data-tab="links">Links</li>
@@ -235,8 +237,13 @@
     </ul>
 
     <!-- Tab Content Sections -->
+    <!-- Home Tab -->
+    <div id="homeTab" class="tab-content active">
+      <div id="homeDisplay">Loading...</div>
+    </div>
+
     <!-- Blog Tab -->
-    <div id="blog" class="tab-content active">
+    <div id="blog" class="tab-content">
       <h2>Blog</h2>
       <div id="blogPosts">Loading...</div>
     </div>
@@ -271,7 +278,6 @@
     <div id="minutes" class="tab-content">
       <h2>Meeting Minutes</h2>
       <div id="minutesList">Loading...</div>
-      <!-- Admin-only form for adding new meeting minutes -->
       <div id="minutesFormContainer" class="admin-only">
         <h3>Add New Meeting Minutes</h3>
         <form id="minutesForm">
@@ -332,704 +338,762 @@
     </div>
   </div>
 
-  <!-- Application Script -->
   <script>
-    // Helper function to format a date string (assumes input in YYYY-MM-DD) to UK format (DD/MM/YYYY)
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
+    document.addEventListener("DOMContentLoaded", function() {
+      // Helper function to format dates to UK format
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
 
-    // Initialize Supabase client using your details
-    const supabaseUrl = "https://hvpyeaouttceulkcowhr.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2cHllYW91dHRjZXVsa2Nvd2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMDE1NDIsImV4cCI6MjA1NDY3NzU0Mn0.rO5Q6lIcEjpmvpTy1yD2nqJi_wmuSVhl1Ojf0qOEgIU";
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+      // Initialize Supabase client
+      const supabaseUrl = "https://hvpyeaouttceulkcowhr.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2cHllYW91dHRjZXVsa2Nvd2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMDE1NDIsImV4cCI6MjA1NDY3NzU0Mn0.rO5Q6lIcEjpmvpTy1yD2nqJi_wmuSVhl1Ojf0qOEgIU";
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    /***** Global Data Arrays *****/
-    let blogPostsData = [];
-    let eventsData = [];
-    let committeeMembersData = [];
-    let linksData = [];
-    let meetingMinutesData = [];
+      /***** Global Data *****/
+      let homeData = {};
+      let blogPostsData = [];
+      let eventsData = [];
+      let committeeMembersData = [];
+      let linksData = [];
+      let meetingMinutesData = [];
+      let adminMode = false;
 
-    /***** Global Admin Mode Flag *****/
-    let adminMode = false;
+      /***** Fetch Functions *****/
+      async function fetchHome() {
+        const { data, error } = await supabaseClient
+          .from("home")
+          .select("*")
+          .limit(1);
+        if (error) {
+          document.getElementById("homeTab").innerText = "Error: " + error.message;
+          console.error("Error fetching home data:", error);
+        } else if (data.length > 0) {
+          homeData = data[0];
+          renderHome();
+        }
+      }
+      async function fetchBlogPosts() {
+        const { data, error } = await supabaseClient
+          .from("blog_posts")
+          .select("*")
+          .order("date", { ascending: false });
+        if (error) {
+          document.getElementById("blogPosts").innerText = "Error: " + error.message;
+          console.error("Error fetching blog posts:", error);
+        } else {
+          blogPostsData = data;
+          renderBlogPosts();
+        }
+      }
+      async function fetchEvents() {
+        const { data, error } = await supabaseClient
+          .from("events")
+          .select("*")
+          .order("date", { ascending: false });
+        if (error) {
+          document.getElementById("eventList").innerText = "Error: " + error.message;
+          console.error("Error fetching events:", error);
+        } else {
+          eventsData = data;
+          renderEvents();
+        }
+      }
+      async function fetchCommitteeMembers() {
+        const { data, error } = await supabaseClient
+          .from("committee_members")
+          .select("*")
+          .order("id", { ascending: false });
+        if (error) {
+          document.getElementById("committeeList").innerText = "Error: " + error.message;
+          console.error("Error fetching committee members:", error);
+        } else {
+          committeeMembersData = data;
+          renderCommitteeMembers();
+        }
+      }
+      async function fetchLinks() {
+        const { data, error } = await supabaseClient
+          .from("links")
+          .select("*")
+          .order("id", { ascending: false });
+        if (error) {
+          document.getElementById("linksList").innerText = "Error: " + error.message;
+          console.error("Error fetching links:", error);
+        } else {
+          linksData = data;
+          renderLinks();
+        }
+      }
+      async function fetchMeetingMinutes() {
+        const { data, error } = await supabaseClient
+          .from("minutes")
+          .select("*")
+          .order("date", { ascending: false });
+        if (error) {
+          document.getElementById("minutesList").innerText = "Error: " + error.message;
+          console.error("Error fetching meeting minutes:", error);
+        } else {
+          meetingMinutesData = data;
+          renderMeetingMinutes();
+        }
+      }
 
-    /***** Fetch Functions *****/
-    async function fetchBlogPosts() {
-      const { data, error } = await supabaseClient
-        .from("blog_posts")
-        .select("*")
-        .order("date", { ascending: false });
-      if (error) {
-        document.getElementById("blogPosts").innerText = "Error: " + error.message;
-        console.error("Error fetching blog posts:", error);
-      } else {
-        blogPostsData = data;
+      /***** Rendering Functions *****/
+      function renderHome() {
+        const container = document.getElementById("homeTab");
+        if (!homeData || !homeData.title) {
+          container.innerText = "No home data found.";
+          return;
+        }
+        let html = `<div id="homeDisplay">
+                      <h2>${homeData.title}</h2>
+                      <p>${homeData.content}</p>
+                    </div>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditHome()">Edit</button>
+                   </div>`;
+        }
+        container.innerHTML = html;
+      }
+      function renderBlogPosts() {
+        const container = document.getElementById("blogPosts");
+        if (!blogPostsData || blogPostsData.length === 0) {
+          container.innerText = "No blog posts found.";
+          return;
+        }
+        let html = "";
+        blogPostsData.forEach(post => {
+          html += `<div class="post" data-id="${post.id}">
+                     <div class="blog-entry">
+                       <div class="blog-header">
+                         <span class="toggle-arrow" onclick="toggleBlogEntry(${post.id}, event)">►</span>
+                         <p><em>${formatDate(post.date)}</em></p>
+                         <h2>${post.title}</h2>
+                       </div>
+                       <div id="blog-content-${post.id}" class="blog-content" style="display:none;">
+                         <p>${post.content}</p>
+                       </div>
+                     </div>`;
+          if (adminMode) {
+            html += `<div class="controls">
+                       <button onclick="startEdit(${post.id})">Edit</button>
+                       <button onclick="deleteBlogPost(${post.id})">Delete</button>
+                     </div>`;
+          }
+          html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+      function renderEvents() {
+        const container = document.getElementById("eventList");
+        if (!eventsData || eventsData.length === 0) {
+          container.innerText = "No events found.";
+          return;
+        }
+        let html = "";
+        eventsData.forEach(event => {
+          html += `<div class="post" data-id="${event.id}">
+                     <p><strong>${formatDate(event.date)}</strong></p>
+                     <h2>${event.title}</h2>
+                     <p>${event.description}</p>`;
+          if (adminMode) {
+            html += `<div class="controls">
+                       <button onclick="startEditEvent(${event.id})">Edit</button>
+                       <button onclick="deleteEvent(${event.id})">Delete</button>
+                     </div>`;
+          }
+          html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+      function renderCommitteeMembers() {
+        const container = document.getElementById("committeeList");
+        if (!committeeMembersData || committeeMembersData.length === 0) {
+          container.innerText = "No committee members found.";
+          return;
+        }
+        let html = "";
+        committeeMembersData.forEach(member => {
+          html += `<div class="post" data-id="${member.id}">
+                     <h3>${member.name}</h3>
+                     <p><strong>Position:</strong> ${member.position}</p>
+                     <p><strong>Contact:</strong> ${member.contact}</p>`;
+          if (member.image_url) {
+            html += `<img src="${member.image_url}" alt="${member.name}" class="committee-img">`;
+          }
+          if (adminMode) {
+            html += `<div class="controls">
+                       <button onclick="startEditCommittee(${member.id})">Edit</button>
+                       <button onclick="deleteCommitteeMember(${member.id})">Delete</button>
+                     </div>`;
+          }
+          html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+      function renderLinks() {
+        const container = document.getElementById("linksList");
+        if (!linksData || linksData.length === 0) {
+          container.innerText = "No links found.";
+          return;
+        }
+        let html = "";
+        linksData.forEach(link => {
+          html += `<div class="post" data-id="${link.id}">
+                     <h3>${link.name}</h3>
+                     <p><a href="${link.url}" target="_blank">${link.url}</a></p>`;
+          if (adminMode) {
+            html += `<div class="controls">
+                       <button onclick="startEditLink(${link.id})">Edit</button>
+                       <button onclick="deleteLink(${link.id})">Delete</button>
+                     </div>`;
+          }
+          html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+      function renderMeetingMinutes() {
+        const container = document.getElementById("minutesList");
+        if (!meetingMinutesData || meetingMinutesData.length === 0) {
+          container.innerText = "No meeting minutes found.";
+          return;
+        }
+        let html = "";
+        meetingMinutesData.forEach(record => {
+          html += `<div class="post" data-id="${record.id}">
+                     <div class="blog-entry">
+                       <div class="blog-header">
+                         <span class="toggle-arrow" onclick="toggleMinutes(${record.id}, event)">►</span>
+                         <p><em>${formatDate(record.date)}</em></p>
+                         <h2>${record.title}</h2>
+                       </div>
+                       <div id="minutes-content-${record.id}" class="blog-content" style="display:none;">
+                         <p>${record.minutes}</p>
+                       </div>
+                     </div>`;
+          if (adminMode) {
+            html += `<div class="controls">
+                       <button onclick="startEditMinutes(${record.id})">Edit</button>
+                       <button onclick="deleteMinutes(${record.id})">Delete</button>
+                     </div>`;
+          }
+          html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+
+      /***** Inline Editing Functions *****/
+      // Blog editing
+      function startEdit(postId) {
+        const post = blogPostsData.find(p => p.id === postId);
+        if (!post) return;
+        const postDiv = document.querySelector(`.post[data-id="${postId}"]`);
+        postDiv.innerHTML = `<form class="edit-form" onsubmit="submitEdit(event, ${postId})">
+                               <input type="date" id="editDate_${postId}" value="${post.date}" required>
+                               <input type="text" id="editTitle_${postId}" value="${post.title}" required>
+                               <textarea id="editContent_${postId}" rows="10" style="overflow-y: auto; height:200px;" required>${post.content}</textarea>
+                               <button type="submit">Save</button>
+                               <button type="button" onclick="cancelEdit(${postId})">Cancel</button>
+                             </form>`;
+      }
+      async function submitEdit(e, postId) {
+        e.preventDefault();
+        const newDate = document.getElementById(`editDate_${postId}`).value;
+        const newTitle = document.getElementById(`editTitle_${postId}`).value;
+        const newContent = document.getElementById(`editContent_${postId}`).value;
+        const { error } = await supabaseClient
+          .from("blog_posts")
+          .update({ date: newDate, title: newTitle, content: newContent })
+          .eq("id", postId);
+        if (error) {
+          alert("Error updating post: " + error.message);
+          console.error("Error updating post:", error);
+        } else {
+          fetchBlogPosts();
+        }
+      }
+      function cancelEdit(postId) {
         renderBlogPosts();
       }
-    }
-    async function fetchEvents() {
-      const { data, error } = await supabaseClient
-        .from("events")
-        .select("*")
-        .order("date", { ascending: false });
-      if (error) {
-        document.getElementById("eventList").innerText = "Error: " + error.message;
-        console.error("Error fetching events:", error);
-      } else {
-        eventsData = data;
+      // Event editing
+      function startEditEvent(eventId) {
+        const eventData = eventsData.find(e => e.id === eventId);
+        if (!eventData) return;
+        const eventDiv = document.querySelector(`.post[data-id="${eventId}"]`);
+        eventDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditEvent(event, ${eventId})">
+                               <input type="text" id="editEventTitle_${eventId}" value="${eventData.title}" required>
+                               <input type="date" id="editEventDate_${eventId}" value="${eventData.date}" required>
+                               <textarea id="editEventDescription_${eventId}" rows="4" required>${eventData.description}</textarea>
+                               <button type="submit">Save</button>
+                               <button type="button" onclick="cancelEditEvent(${eventId})">Cancel</button>
+                             </form>`;
+      }
+      async function submitEditEvent(e, eventId) {
+        e.preventDefault();
+        const newTitle = document.getElementById(`editEventTitle_${eventId}`).value;
+        const newDate = document.getElementById(`editEventDate_${eventId}`).value;
+        const newDescription = document.getElementById(`editEventDescription_${eventId}`).value;
+        const { error } = await supabaseClient
+          .from("events")
+          .update({ title: newTitle, date: newDate, description: newDescription })
+          .eq("id", eventId);
+        if (error) {
+          alert("Error updating event: " + error.message);
+          console.error("Error updating event:", error);
+        } else {
+          fetchEvents();
+        }
+      }
+      function cancelEditEvent(eventId) {
         renderEvents();
       }
-    }
-    async function fetchCommitteeMembers() {
-      const { data, error } = await supabaseClient
-        .from("committee_members")
-        .select("*")
-        .order("id", { ascending: false });
-      if (error) {
-        document.getElementById("committeeList").innerText = "Error: " + error.message;
-        console.error("Error fetching committee members:", error);
-      } else {
-        committeeMembersData = data;
+      // Committee editing
+      function startEditCommittee(memberId) {
+        const member = committeeMembersData.find(m => m.id === memberId);
+        if (!member) return;
+        const memberDiv = document.querySelector(`.post[data-id="${memberId}"]`);
+        memberDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditCommittee(event, ${memberId})">
+                               <input type="text" id="editCommitteeName_${memberId}" value="${member.name}" required>
+                               <input type="text" id="editCommitteePosition_${memberId}" value="${member.position}" required>
+                               <input type="text" id="editCommitteeContact_${memberId}" value="${member.contact}" required>
+                               <input type="text" id="editCommitteeImageUrl_${memberId}" value="${member.image_url}" required>
+                               <button type="submit">Save</button>
+                               <button type="button" onclick="cancelEditCommittee(${memberId})">Cancel</button>
+                             </form>`;
+      }
+      async function submitEditCommittee(e, memberId) {
+        e.preventDefault();
+        const newName = document.getElementById(`editCommitteeName_${memberId}`).value;
+        const newPosition = document.getElementById(`editCommitteePosition_${memberId}`).value;
+        const newContact = document.getElementById(`editCommitteeContact_${memberId}`).value;
+        const newImageUrl = document.getElementById(`editCommitteeImageUrl_${memberId}`).value;
+        const { error } = await supabaseClient
+          .from("committee_members")
+          .update({ name: newName, position: newPosition, contact: newContact, image_url: newImageUrl })
+          .eq("id", memberId);
+        if (error) {
+          alert("Error updating committee member: " + error.message);
+          console.error("Error updating committee member:", error);
+        } else {
+          fetchCommitteeMembers();
+        }
+      }
+      function cancelEditCommittee(memberId) {
         renderCommitteeMembers();
       }
-    }
-    async function fetchLinks() {
-      const { data, error } = await supabaseClient
-        .from("links")
-        .select("*")
-        .order("id", { ascending: false });
-      if (error) {
-        document.getElementById("linksList").innerText = "Error: " + error.message;
-        console.error("Error fetching links:", error);
-      } else {
-        linksData = data;
+      // Link editing
+      function startEditLink(linkId) {
+        const link = linksData.find(l => l.id === linkId);
+        if (!link) return;
+        const linkDiv = document.querySelector(`.post[data-id="${linkId}"]`);
+        linkDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditLink(event, ${linkId})">
+                               <input type="text" id="editLinkName_${linkId}" value="${link.name}" required>
+                               <input type="text" id="editLinkURL_${linkId}" value="${link.url}" required>
+                               <button type="submit">Save</button>
+                               <button type="button" onclick="cancelEditLink(${linkId})">Cancel</button>
+                             </form>`;
+      }
+      async function submitEditLink(e, linkId) {
+        e.preventDefault();
+        const newName = document.getElementById(`editLinkName_${linkId}`).value;
+        const newURL = document.getElementById(`editLinkURL_${linkId}`).value;
+        const { error } = await supabaseClient
+          .from("links")
+          .update({ name: newName, url: newURL })
+          .eq("id", linkId);
+        if (error) {
+          alert("Error updating link: " + error.message);
+          console.error("Error updating link:", error);
+        } else {
+          fetchLinks();
+        }
+      }
+      function cancelEditLink(linkId) {
         renderLinks();
       }
-    }
-    async function fetchMeetingMinutes() {
-      const { data, error } = await supabaseClient
-        .from("minutes")
-        .select("*")
-        .order("date", { ascending: false });
-      if (error) {
-        document.getElementById("minutesList").innerText = "Error: " + error.message;
-        console.error("Error fetching meeting minutes:", error);
-      } else {
-        meetingMinutesData = data;
+      // Toggle functions for collapsible content
+      function toggleBlogEntry(postId, event) {
+        event.stopPropagation();
+        const contentElement = document.getElementById("blog-content-" + postId);
+        const arrow = event.target;
+        if (contentElement.style.display === "none" || contentElement.style.display === "") {
+          contentElement.style.display = "block";
+          arrow.textContent = "▼";
+        } else {
+          contentElement.style.display = "none";
+          arrow.textContent = "►";
+        }
+      }
+      function toggleMinutes(recordId, event) {
+        event.stopPropagation();
+        const contentElement = document.getElementById("minutes-content-" + recordId);
+        const arrow = event.target;
+        if (contentElement.style.display === "none" || contentElement.style.display === "") {
+          contentElement.style.display = "block";
+          arrow.textContent = "▼";
+        } else {
+          contentElement.style.display = "none";
+          arrow.textContent = "►";
+        }
+      }
+      // Meeting Minutes editing
+      function startEditMinutes(id) {
+        const record = meetingMinutesData.find(r => r.id === id);
+        if (!record) return;
+        const div = document.querySelector(`.post[data-id="${id}"]`);
+        div.innerHTML = `<form class="edit-form" onsubmit="submitEditMinutes(event, ${id})">
+                          <input type="date" id="editMinutesDate_${id}" value="${record.date}" required>
+                          <input type="text" id="editMinutesTitle_${id}" value="${record.title}" required>
+                          <textarea id="editMinutesContent_${id}" rows="4" required>${record.minutes}</textarea>
+                          <button type="submit">Save</button>
+                          <button type="button" onclick="cancelEditMinutes(${id})">Cancel</button>
+                        </form>`;
+      }
+      async function submitEditMinutes(e, id) {
+        e.preventDefault();
+        const newDate = document.getElementById("editMinutesDate_" + id).value;
+        const newTitle = document.getElementById("editMinutesTitle_" + id).value;
+        const newContent = document.getElementById("editMinutesContent_" + id).value;
+        const { error } = await supabaseClient
+          .from("minutes")
+          .update({ date: newDate, title: newTitle, minutes: newContent })
+          .eq("id", id);
+        if (error) {
+          alert("Error updating meeting minutes: " + error.message);
+          console.error("Error updating meeting minutes:", error);
+        } else {
+          fetchMeetingMinutes();
+        }
+      }
+      function cancelEditMinutes(id) {
         renderMeetingMinutes();
       }
-    }
-
-    /***** Rendering Functions *****/
-    function renderBlogPosts() {
-      const container = document.getElementById('blogPosts');
-      if (!blogPostsData || blogPostsData.length === 0) {
-        container.innerText = "No blog posts found.";
-        return;
+      // Home inline editing
+      function startEditHome() {
+        const container = document.getElementById("homeTab");
+        container.innerHTML = `<form class="edit-form" onsubmit="submitEditHome(event)">
+                                 <input type="text" id="editHomeTitle" value="${homeData.title}" required>
+                                 <textarea id="editHomeContent" rows="6" style="overflow-y: auto; height:150px;" required>${homeData.content}</textarea>
+                                 <button type="submit">Save</button>
+                                 <button type="button" onclick="cancelEditHome()">Cancel</button>
+                               </form>`;
       }
-      let html = "";
-      blogPostsData.forEach(post => {
-        html += `<div class="post" data-id="${post.id}">
-                   <div class="blog-entry">
-                     <div class="blog-header">
-                       <span class="toggle-arrow" onclick="toggleBlogEntry(${post.id}, event)">►</span>
-                       <p><em>${formatDate(post.date)}</em></p>
-                       <h2>${post.title}</h2>
-                     </div>
-                     <div id="blog-content-${post.id}" class="blog-content" style="display:none;">
-                       <p>${post.content}</p>
-                     </div>
-                   </div>`;
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEdit(${post.id})">Edit</button>
-                     <button onclick="deleteBlogPost(${post.id})">Delete</button>
-                   </div>`;
-        }
-        html += `</div>`;
-      });
-      container.innerHTML = html;
-    }
-
-    function renderEvents() {
-      const container = document.getElementById('eventList');
-      if (!eventsData || eventsData.length === 0) {
-        container.innerText = "No events found.";
-        return;
-      }
-      let html = "";
-      eventsData.forEach(event => {
-        html += `<div class="post" data-id="${event.id}">
-                   <p><strong>${formatDate(event.date)}</strong></p>
-                   <h2>${event.title}</h2>
-                   <p>${event.description}</p>`;
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEditEvent(${event.id})">Edit</button>
-                     <button onclick="deleteEvent(${event.id})">Delete</button>
-                   </div>`;
-        }
-        html += `</div>`;
-      });
-      container.innerHTML = html;
-    }
-
-    function renderCommitteeMembers() {
-      const container = document.getElementById('committeeList');
-      if (!committeeMembersData || committeeMembersData.length === 0) {
-        container.innerText = "No committee members found.";
-        return;
-      }
-      let html = "";
-      committeeMembersData.forEach(member => {
-        html += `<div class="post" data-id="${member.id}">
-                   <h3>${member.name}</h3>
-                   <p><strong>Position:</strong> ${member.position}</p>
-                   <p><strong>Contact:</strong> ${member.contact}</p>`;
-        if (member.image_url) {
-          html += `<img src="${member.image_url}" alt="${member.name}" class="committee-img">`;
-        }
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEditCommittee(${member.id})">Edit</button>
-                     <button onclick="deleteCommitteeMember(${member.id})">Delete</button>
-                   </div>`;
-        }
-        html += `</div>`;
-      });
-      container.innerHTML = html;
-    }
-
-    function renderLinks() {
-      const container = document.getElementById('linksList');
-      if (!linksData || linksData.length === 0) {
-        container.innerText = "No links found.";
-        return;
-      }
-      let html = "";
-      linksData.forEach(link => {
-        html += `<div class="post" data-id="${link.id}">
-                   <h3>${link.name}</h3>
-                   <p><a href="${link.url}" target="_blank">${link.url}</a></p>`;
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEditLink(${link.id})">Edit</button>
-                     <button onclick="deleteLink(${link.id})">Delete</button>
-                   </div>`;
-        }
-        html += `</div>`;
-      });
-      container.innerHTML = html;
-    }
-
-    function renderMeetingMinutes() {
-      const container = document.getElementById('minutesList');
-      if (!meetingMinutesData || meetingMinutesData.length === 0) {
-        container.innerText = "No meeting minutes found.";
-        return;
-      }
-      let html = "";
-      meetingMinutesData.forEach(record => {
-        html += `<div class="post" data-id="${record.id}">
-                   <div class="blog-entry">
-                     <div class="blog-header">
-                       <span class="toggle-arrow" onclick="toggleMinutes(${record.id}, event)">►</span>
-                       <p><em>${formatDate(record.date)}</em></p>
-                       <h2>${record.title}</h2>
-                     </div>
-                     <div id="minutes-content-${record.id}" class="blog-content" style="display:none;">
-                       <p>${record.minutes}</p>
-                     </div>
-                   </div>`;
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEditMinutes(${record.id})">Edit</button>
-                     <button onclick="deleteMinutes(${record.id})">Delete</button>
-                   </div>`;
-        }
-        html += `</div>`;
-      });
-      container.innerHTML = html;
-    }
-
-    /***** Inline Editing Functions *****/
-    function startEdit(postId) {
-      const post = blogPostsData.find(p => p.id === postId);
-      if (!post) return;
-      const postDiv = document.querySelector(`.post[data-id="${postId}"]`);
-      postDiv.innerHTML = `<form class="edit-form" onsubmit="submitEdit(event, ${postId})">
-                             <input type="date" id="editDate_${postId}" value="${post.date}" required>
-                             <input type="text" id="editTitle_${postId}" value="${post.title}" required>
-                             <textarea id="editContent_${postId}" rows="4" required>${post.content}</textarea>
-                             <button type="submit">Save</button>
-                             <button type="button" onclick="cancelEdit(${postId})">Cancel</button>
-                           </form>`;
-    }
-    async function submitEdit(e, postId) {
-      e.preventDefault();
-      const newDate = document.getElementById(`editDate_${postId}`).value;
-      const newTitle = document.getElementById(`editTitle_${postId}`).value;
-      const newContent = document.getElementById(`editContent_${postId}`).value;
-      const { error } = await supabaseClient
-        .from("blog_posts")
-        .update({ date: newDate, title: newTitle, content: newContent })
-        .eq("id", postId);
-      if (error) {
-        alert("Error updating post: " + error.message);
-        console.error("Error updating post:", error);
-      } else {
-        fetchBlogPosts();
-      }
-    }
-    function cancelEdit(postId) {
-      renderBlogPosts();
-    }
-    function startEditEvent(eventId) {
-      const eventData = eventsData.find(e => e.id === eventId);
-      if (!eventData) return;
-      const eventDiv = document.querySelector(`.post[data-id="${eventId}"]`);
-      eventDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditEvent(event, ${eventId})">
-                             <input type="text" id="editEventTitle_${eventId}" value="${eventData.title}" required>
-                             <input type="date" id="editEventDate_${eventId}" value="${eventData.date}" required>
-                             <textarea id="editEventDescription_${eventId}" rows="4" required>${eventData.description}</textarea>
-                             <button type="submit">Save</button>
-                             <button type="button" onclick="cancelEditEvent(${eventId})">Cancel</button>
-                           </form>`;
-    }
-    async function submitEditEvent(e, eventId) {
-      e.preventDefault();
-      const newTitle = document.getElementById(`editEventTitle_${eventId}`).value;
-      const newDate = document.getElementById(`editEventDate_${eventId}`).value;
-      const newDescription = document.getElementById(`editEventDescription_${eventId}`).value;
-      const { error } = await supabaseClient
-        .from("events")
-        .update({ title: newTitle, date: newDate, description: newDescription })
-        .eq("id", eventId);
-      if (error) {
-        alert("Error updating event: " + error.message);
-        console.error("Error updating event:", error);
-      } else {
-        fetchEvents();
-      }
-    }
-    function cancelEditEvent(eventId) {
-      renderEvents();
-    }
-    function startEditCommittee(memberId) {
-      const member = committeeMembersData.find(m => m.id === memberId);
-      if (!member) return;
-      const memberDiv = document.querySelector(`.post[data-id="${memberId}"]`);
-      memberDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditCommittee(event, ${memberId})">
-                             <input type="text" id="editCommitteeName_${memberId}" value="${member.name}" required>
-                             <input type="text" id="editCommitteePosition_${memberId}" value="${member.position}" required>
-                             <input type="text" id="editCommitteeContact_${memberId}" value="${member.contact}" required>
-                             <input type="text" id="editCommitteeImageUrl_${memberId}" value="${member.image_url}" required>
-                             <button type="submit">Save</button>
-                             <button type="button" onclick="cancelEditCommittee(${memberId})">Cancel</button>
-                           </form>`;
-    }
-    async function submitEditCommittee(e, memberId) {
-      e.preventDefault();
-      const newName = document.getElementById(`editCommitteeName_${memberId}`).value;
-      const newPosition = document.getElementById(`editCommitteePosition_${memberId}`).value;
-      const newContact = document.getElementById(`editCommitteeContact_${memberId}`).value;
-      const newImageUrl = document.getElementById(`editCommitteeImageUrl_${memberId}`).value;
-      const { error } = await supabaseClient
-        .from("committee_members")
-        .update({ name: newName, position: newPosition, contact: newContact, image_url: newImageUrl })
-        .eq("id", memberId);
-      if (error) {
-        alert("Error updating committee member: " + error.message);
-        console.error("Error updating committee member:", error);
-      } else {
-        fetchCommitteeMembers();
-      }
-    }
-    function cancelEditCommittee(memberId) {
-      renderCommitteeMembers();
-    }
-    function startEditLink(linkId) {
-      const link = linksData.find(l => l.id === linkId);
-      if (!link) return;
-      const linkDiv = document.querySelector(`.post[data-id="${linkId}"]`);
-      linkDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditLink(event, ${linkId})">
-                             <input type="text" id="editLinkName_${linkId}" value="${link.name}" required>
-                             <input type="text" id="editLinkURL_${linkId}" value="${link.url}" required>
-                             <button type="submit">Save</button>
-                             <button type="button" onclick="cancelEditLink(${linkId})">Cancel</button>
-                           </form>`;
-    }
-    async function submitEditLink(e, linkId) {
-      e.preventDefault();
-      const newName = document.getElementById(`editLinkName_${linkId}`).value;
-      const newURL = document.getElementById(`editLinkURL_${linkId}`).value;
-      const { error } = await supabaseClient
-        .from("links")
-        .update({ name: newName, url: newURL })
-        .eq("id", linkId);
-      if (error) {
-        alert("Error updating link: " + error.message);
-        console.error("Error updating link:", error);
-      } else {
-        fetchLinks();
-      }
-    }
-    function cancelEditLink(linkId) {
-      renderLinks();
-    }
-    function toggleBlogEntry(postId, event) {
-      event.stopPropagation();
-      const contentElement = document.getElementById('blog-content-' + postId);
-      const arrow = event.target;
-      if (contentElement.style.display === 'none' || contentElement.style.display === '') {
-        contentElement.style.display = 'block';
-        arrow.textContent = '▼';
-      } else {
-        contentElement.style.display = 'none';
-        arrow.textContent = '►';
-      }
-    }
-    function toggleMinutes(recordId, event) {
-      event.stopPropagation();
-      const contentElement = document.getElementById('minutes-content-' + recordId);
-      const arrow = event.target;
-      if (contentElement.style.display === 'none' || contentElement.style.display === '') {
-        contentElement.style.display = 'block';
-        arrow.textContent = '▼';
-      } else {
-        contentElement.style.display = 'none';
-        arrow.textContent = '►';
-      }
-    }
-    function startEditMinutes(id) {
-      const record = meetingMinutesData.find(r => r.id === id);
-      if (!record) return;
-      const div = document.querySelector(`.post[data-id="${id}"]`);
-      div.innerHTML = `<form class="edit-form" onsubmit="submitEditMinutes(event, ${id})">
-                        <input type="date" id="editMinutesDate_${id}" value="${record.date}" required>
-                        <input type="text" id="editMinutesTitle_${id}" value="${record.title}" required>
-                        <textarea id="editMinutesContent_${id}" rows="4" required>${record.minutes}</textarea>
-                        <button type="submit">Save</button>
-                        <button type="button" onclick="cancelEditMinutes(${id})">Cancel</button>
-                      </form>`;
-    }
-    async function submitEditMinutes(e, id) {
-      e.preventDefault();
-      const newDate = document.getElementById(`editMinutesDate_${id}`).value;
-      const newTitle = document.getElementById(`editMinutesTitle_${id}`).value;
-      const newContent = document.getElementById(`editMinutesContent_${id}`).value;
-      const { error } = await supabaseClient
-        .from("minutes")
-        .update({ date: newDate, title: newTitle, minutes: newContent })
-        .eq("id", id);
-      if (error) {
-        alert("Error updating meeting minutes: " + error.message);
-        console.error("Error updating meeting minutes:", error);
-      } else {
-        fetchMeetingMinutes();
-      }
-    }
-    function cancelEditMinutes(id) {
-      renderMeetingMinutes();
-    }
-
-    /***** Form Submission for Adding New Data *****/
-    async function addBlogPost(date, title, content) {
-      const { error } = await supabaseClient
-        .from("blog_posts")
-        .insert([{ date, title, content }]);
-      if (error) {
-        alert("Error adding blog post: " + error.message);
-        console.error("Error adding blog post:", error);
-      } else {
-        fetchBlogPosts();
-      }
-    }
-    async function addEvent(title, date, description) {
-      const { error } = await supabaseClient
-        .from("events")
-        .insert([{ title, date, description }]);
-      if (error) {
-        alert("Error adding event: " + error.message);
-        console.error("Error adding event:", error);
-      } else {
-        fetchEvents();
-      }
-    }
-    async function addCommitteeMember(name, position, contact, image_url) {
-      const { error } = await supabaseClient
-        .from("committee_members")
-        .insert([{ name, position, contact, image_url }]);
-      if (error) {
-        alert("Error adding committee member: " + error.message);
-        console.error("Error adding committee member:", error);
-      } else {
-        fetchCommitteeMembers();
-      }
-    }
-    async function addLink(name, url) {
-      const { error } = await supabaseClient
-        .from("links")
-        .insert([{ name, url }]);
-      if (error) {
-        alert("Error adding link: " + error.message);
-        console.error("Error adding link:", error);
-      } else {
-        fetchLinks();
-      }
-    }
-    async function addMeetingMinutes(date, title, minutesContent) {
-      const { error } = await supabaseClient
-        .from("minutes")
-        .insert([{ date, title, minutes: minutesContent }]);
-      if (error) {
-        alert("Error adding meeting minutes: " + error.message);
-        console.error("Error adding meeting minutes:", error);
-      } else {
-        fetchMeetingMinutes();
-      }
-    }
-
-    // New Blog Post Form Submission
-    document.getElementById("blogForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const date = document.getElementById("blogDate").value;
-      const title = document.getElementById("blogTitle").value;
-      const content = document.getElementById("blogContent").value;
-      addBlogPost(date, title, content);
-      document.getElementById("blogDate").value = "";
-      document.getElementById("blogTitle").value = "";
-      document.getElementById("blogContent").value = "";
-    });
-    // New Event Form Submission
-    document.getElementById("eventForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const title = document.getElementById("eventTitle").value;
-      const date = document.getElementById("eventDate").value;
-      const description = document.getElementById("eventDescription").value;
-      addEvent(title, date, description);
-      document.getElementById("eventTitle").value = "";
-      document.getElementById("eventDate").value = "";
-      document.getElementById("eventDescription").value = "";
-    });
-    // New Committee Member Form Submission
-    document.getElementById("committeeForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const name = document.getElementById("committeeName").value;
-      const position = document.getElementById("committeePosition").value;
-      const contact = document.getElementById("committeeContact").value;
-      const imageUrl = document.getElementById("committeePreview").src;
-      addCommitteeMember(name, position, contact, imageUrl);
-      document.getElementById("committeeName").value = "";
-      document.getElementById("committeePosition").value = "";
-      document.getElementById("committeeContact").value = "";
-      document.getElementById("committeePreview").src = "https://placehold.co/80";
-    });
-    // New Link Form Submission
-    document.getElementById("linkForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const name = document.getElementById("linkName").value;
-      const url = document.getElementById("linkURL").value;
-      addLink(name, url);
-      document.getElementById("linkName").value = "";
-      document.getElementById("linkURL").value = "";
-    });
-    // New Meeting Minutes Form Submission (Admin Only)
-    document.getElementById("minutesForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const date = document.getElementById("minutesDate").value;
-      const title = document.getElementById("minutesTitle").value;
-      const minutesContent = document.getElementById("minutesContent").value;
-      addMeetingMinutes(date, title, minutesContent);
-      document.getElementById("minutesDate").value = "";
-      document.getElementById("minutesTitle").value = "";
-      document.getElementById("minutesContent").value = "";
-    });
-
-    /***** Drag & Drop for Committee Image Upload *****/
-    const dropZone = document.getElementById("committeeDropZone");
-    const previewImage = document.getElementById("committeePreview");
-    dropZone.addEventListener("dragover", function(e) {
-      e.preventDefault();
-      dropZone.classList.add("drop-zone--over");
-    });
-    dropZone.addEventListener("dragleave", function(e) {
-      e.preventDefault();
-      dropZone.classList.remove("drop-zone--over");
-    });
-    dropZone.addEventListener("drop", function(e) {
-      e.preventDefault();
-      dropZone.classList.remove("drop-zone--over");
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        const file = files[0];
-        if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            previewImage.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
+      async function submitEditHome(e) {
+        e.preventDefault();
+        const newTitle = document.getElementById("editHomeTitle").value;
+        const newContent = document.getElementById("editHomeContent").value;
+        const { error } = await supabaseClient
+          .from("home")
+          .update({ title: newTitle, content: newContent })
+          .eq("id", homeData.id);
+        if (error) {
+          alert("Error updating home data: " + error.message);
+          console.error("Error updating home data:", error);
         } else {
-          alert("Please drop an image file.");
+          fetchHome();
         }
       }
-    });
+      function cancelEditHome() {
+        renderHome();
+      }
 
-    /***** Tab Switching Functionality *****/
-    const tabs = document.querySelectorAll(".tabs li");
-    const tabContents = document.querySelectorAll(".tab-content");
-    tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        const target = tab.getAttribute("data-tab");
-        tabs.forEach(t => t.classList.remove("active"));
-        tabContents.forEach(content => content.classList.remove("active"));
-        tab.classList.add("active");
-        document.getElementById(target).classList.add("active");
+      /***** Form Submission for Adding New Data *****/
+      async function addBlogPost(date, title, content) {
+        const { error } = await supabaseClient
+          .from("blog_posts")
+          .insert([{ date, title, content }]);
+        if (error) {
+          alert("Error adding blog post: " + error.message);
+          console.error("Error adding blog post:", error);
+        } else {
+          fetchBlogPosts();
+        }
+      }
+      async function addEvent(title, date, description) {
+        const { error } = await supabaseClient
+          .from("events")
+          .insert([{ title, date, description }]);
+        if (error) {
+          alert("Error adding event: " + error.message);
+          console.error("Error adding event:", error);
+        } else {
+          fetchEvents();
+        }
+      }
+      async function addCommitteeMember(name, position, contact, image_url) {
+        const { error } = await supabaseClient
+          .from("committee_members")
+          .insert([{ name, position, contact, image_url }]);
+        if (error) {
+          alert("Error adding committee member: " + error.message);
+          console.error("Error adding committee member:", error);
+        } else {
+          fetchCommitteeMembers();
+        }
+      }
+      async function addLink(name, url) {
+        const { error } = await supabaseClient
+          .from("links")
+          .insert([{ name, url }]);
+        if (error) {
+          alert("Error adding link: " + error.message);
+          console.error("Error adding link:", error);
+        } else {
+          fetchLinks();
+        }
+      }
+      async function addMeetingMinutes(date, title, minutesContent) {
+        const { error } = await supabaseClient
+          .from("minutes")
+          .insert([{ date, title, minutes: minutesContent }]);
+        if (error) {
+          alert("Error adding meeting minutes: " + error.message);
+          console.error("Error adding meeting minutes:", error);
+        } else {
+          fetchMeetingMinutes();
+        }
+      }
+
+      // Attach form submit listeners
+      document.getElementById("blogForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const date = document.getElementById("blogDate").value;
+        const title = document.getElementById("blogTitle").value;
+        const content = document.getElementById("blogContent").value;
+        addBlogPost(date, title, content);
+        document.getElementById("blogDate").value = "";
+        document.getElementById("blogTitle").value = "";
+        document.getElementById("blogContent").value = "";
       });
-    });
+      document.getElementById("eventForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const title = document.getElementById("eventTitle").value;
+        const date = document.getElementById("eventDate").value;
+        const description = document.getElementById("eventDescription").value;
+        addEvent(title, date, description);
+        document.getElementById("eventTitle").value = "";
+        document.getElementById("eventDate").value = "";
+        document.getElementById("eventDescription").value = "";
+      });
+      document.getElementById("committeeForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("committeeName").value;
+        const position = document.getElementById("committeePosition").value;
+        const contact = document.getElementById("committeeContact").value;
+        const imageUrl = document.getElementById("committeePreview").src;
+        addCommitteeMember(name, position, contact, imageUrl);
+        document.getElementById("committeeName").value = "";
+        document.getElementById("committeePosition").value = "";
+        document.getElementById("committeeContact").value = "";
+        document.getElementById("committeePreview").src = "https://placehold.co/80";
+      });
+      document.getElementById("linkForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const name = document.getElementById("linkName").value;
+        const url = document.getElementById("linkURL").value;
+        addLink(name, url);
+        document.getElementById("linkName").value = "";
+        document.getElementById("linkURL").value = "";
+      });
+      document.getElementById("minutesForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const date = document.getElementById("minutesDate").value;
+        const title = document.getElementById("minutesTitle").value;
+        const minutesContent = document.getElementById("minutesContent").value;
+        addMeetingMinutes(date, title, minutesContent);
+        document.getElementById("minutesDate").value = "";
+        document.getElementById("minutesTitle").value = "";
+        document.getElementById("minutesContent").value = "";
+      });
 
-    /***** ADMIN LOGIN FUNCTIONALITY *****/
-    const adminLink = document.getElementById("adminLink");
-    const loginModal = document.getElementById("loginModal");
-    const modalClose = document.getElementById("modalClose");
-    const loginButton = document.getElementById("loginButton");
-    const adminPassword = document.getElementById("adminPassword");
-    
-    adminLink.addEventListener("click", function(e) {
-      e.preventDefault();
-      loginModal.style.display = "block";
-      adminPassword.value = "";
-      adminPassword.focus();
-    });
-    modalClose.addEventListener("click", function() {
-      loginModal.style.display = "none";
-    });
-    loginButton.addEventListener("click", async function() {
-      // Retrieve the admin password from the "password" table
-      const { data, error } = await supabaseClient
-        .from("password")
-        .select("*")
-        .limit(1);
-      if (error) {
-        alert("Error retrieving password: " + error.message);
-        console.error("Error retrieving password:", error);
-        return;
-      }
-      // Assume the table "password" has one record with a column named "password"
-      if (data.length > 0 && adminPassword.value === data[0].password) {
-        document.querySelectorAll(".admin-tab").forEach(el => {
-          el.style.display = "";
-          el.classList.remove("admin-tab");
+      /***** Drag & Drop for Committee Image Upload *****/
+      const dropZone = document.getElementById("committeeDropZone");
+      const previewImage = document.getElementById("committeePreview");
+      dropZone.addEventListener("dragover", function(e) {
+        e.preventDefault();
+        dropZone.classList.add("drop-zone--over");
+      });
+      dropZone.addEventListener("dragleave", function(e) {
+        e.preventDefault();
+        dropZone.classList.remove("drop-zone--over");
+      });
+      dropZone.addEventListener("drop", function(e) {
+        e.preventDefault();
+        dropZone.classList.remove("drop-zone--over");
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              previewImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          } else {
+            alert("Please drop an image file.");
+          }
+        }
+      });
+
+      /***** Tab Switching Functionality *****/
+      const tabs = document.querySelectorAll(".tabs li");
+      const tabContents = document.querySelectorAll(".tab-content");
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          const target = tab.getAttribute("data-tab");
+          tabs.forEach(t => t.classList.remove("active"));
+          tabContents.forEach(content => content.classList.remove("active"));
+          tab.classList.add("active");
+          document.getElementById(target).classList.add("active");
         });
-        document.querySelectorAll(".admin-only").forEach(el => {
-          el.style.display = "block";
-        });
-        adminMode = true;
-        fetchBlogPosts();
-        fetchEvents();
-        fetchCommitteeMembers();
-        fetchLinks();
-        fetchMeetingMinutes();
+      });
+
+      /***** ADMIN LOGIN FUNCTIONALITY *****/
+      const adminLink = document.getElementById("adminLink");
+      const loginModal = document.getElementById("loginModal");
+      const modalClose = document.getElementById("modalClose");
+      const loginButton = document.getElementById("loginButton");
+      const adminPassword = document.getElementById("adminPassword");
+      
+      adminLink.addEventListener("click", function(e) {
+        e.preventDefault();
+        loginModal.style.display = "block";
+        adminPassword.value = "";
+        adminPassword.focus();
+      });
+      modalClose.addEventListener("click", function() {
         loginModal.style.display = "none";
-        alert("Admin mode enabled.");
-      } else {
-        alert("Incorrect password. Please try again.");
-      }
-    });
-    window.addEventListener("click", function(event) {
-      if (event.target === loginModal) {
-        loginModal.style.display = "none";
-      }
-    });
+      });
+      loginButton.addEventListener("click", async function() {
+        const { data, error } = await supabaseClient
+          .from("password")
+          .select("*")
+          .limit(1);
+        if (error) {
+          alert("Error retrieving password: " + error.message);
+          console.error("Error retrieving password:", error);
+          return;
+        }
+        if (data.length > 0 && adminPassword.value === data[0].password) {
+          document.querySelectorAll(".admin-tab").forEach(el => {
+            el.style.display = "";
+            el.classList.remove("admin-tab");
+          });
+          document.querySelectorAll(".admin-only").forEach(el => {
+            el.style.display = "block";
+          });
+          adminMode = true;
+          fetchHome();
+          fetchBlogPosts();
+          fetchEvents();
+          fetchCommitteeMembers();
+          fetchLinks();
+          fetchMeetingMinutes();
+          loginModal.style.display = "none";
+          alert("Admin mode enabled.");
+        } else {
+          alert("Incorrect password. Please try again.");
+        }
+      });
+      window.addEventListener("click", function(event) {
+        if (event.target === loginModal) {
+          loginModal.style.display = "none";
+        }
+      });
 
-    // On initial page load, fetch all data from Supabase
-    fetchBlogPosts();
-    fetchEvents();
-    fetchCommitteeMembers();
-    fetchLinks();
-    fetchMeetingMinutes();
+      // On initial page load, fetch data
+      fetchHome();
+      fetchBlogPosts();
+      fetchEvents();
+      fetchCommitteeMembers();
+      fetchLinks();
+      fetchMeetingMinutes();
 
-    /***** Expose Inline Editing and Delete Functions to Global Scope *****/
-    window.startEdit = startEdit;
-    window.deleteBlogPost = function(postId) {
-      supabaseClient
-        .from("blog_posts")
-        .delete()
-        .eq("id", postId)
-        .then(({ error }) => {
-          if (error) {
-            alert("Error deleting post: " + error.message);
-            console.error("Error deleting post:", error);
-          } else {
-            fetchBlogPosts();
-          }
-        });
-    };
-    window.startEditEvent = startEditEvent;
-    window.deleteEvent = function(eventId) {
-      supabaseClient
-        .from("events")
-        .delete()
-        .eq("id", eventId)
-        .then(({ error }) => {
-          if (error) {
-            alert("Error deleting event: " + error.message);
-            console.error("Error deleting event:", error);
-          } else {
-            fetchEvents();
-          }
-        });
-    };
-    window.startEditCommittee = startEditCommittee;
-    window.deleteCommitteeMember = function(memberId) {
-      supabaseClient
-        .from("committee_members")
-        .delete()
-        .eq("id", memberId)
-        .then(({ error }) => {
-          if (error) {
-            alert("Error deleting committee member: " + error.message);
-            console.error("Error deleting committee member:", error);
-          } else {
-            fetchCommitteeMembers();
-          }
-        });
-    };
-    window.startEditLink = startEditLink;
-    window.deleteLink = function(linkId) {
-      supabaseClient
-        .from("links")
-        .delete()
-        .eq("id", linkId)
-        .then(({ error }) => {
-          if (error) {
-            alert("Error deleting link: " + error.message);
-            console.error("Error deleting link:", error);
-          } else {
-            fetchLinks();
-          }
-        });
-    };
-    window.startEditMinutes = startEditMinutes;
-    window.deleteMinutes = function(id) {
-      supabaseClient
-        .from("minutes")
-        .delete()
-        .eq("id", id)
-        .then(({ error }) => {
-          if (error) {
-            alert("Error deleting meeting minutes: " + error.message);
-            console.error("Error deleting meeting minutes:", error);
-          } else {
-            fetchMeetingMinutes();
-          }
-        });
-    };
+      /***** Expose Functions to Global Scope *****/
+      window.startEdit = startEdit;
+      window.deleteBlogPost = function(postId) {
+        supabaseClient
+          .from("blog_posts")
+          .delete()
+          .eq("id", postId)
+          .then(({ error }) => {
+            if (error) {
+              alert("Error deleting post: " + error.message);
+              console.error("Error deleting post:", error);
+            } else {
+              fetchBlogPosts();
+            }
+          });
+      };
+      window.startEditEvent = startEditEvent;
+      window.deleteEvent = function(eventId) {
+        supabaseClient
+          .from("events")
+          .delete()
+          .eq("id", eventId)
+          .then(({ error }) => {
+            if (error) {
+              alert("Error deleting event: " + error.message);
+              console.error("Error deleting event:", error);
+            } else {
+              fetchEvents();
+            }
+          });
+      };
+      window.startEditCommittee = startEditCommittee;
+      window.deleteCommitteeMember = function(memberId) {
+        supabaseClient
+          .from("committee_members")
+          .delete()
+          .eq("id", memberId)
+          .then(({ error }) => {
+            if (error) {
+              alert("Error deleting committee member: " + error.message);
+              console.error("Error deleting committee member:", error);
+            } else {
+              fetchCommitteeMembers();
+            }
+          });
+      };
+      window.startEditLink = startEditLink;
+      window.deleteLink = function(linkId) {
+        supabaseClient
+          .from("links")
+          .delete()
+          .eq("id", linkId)
+          .then(({ error }) => {
+            if (error) {
+              alert("Error deleting link: " + error.message);
+              console.error("Error deleting link:", error);
+            } else {
+              fetchLinks();
+            }
+          });
+      };
+      window.startEditMinutes = startEditMinutes;
+      window.deleteMinutes = function(id) {
+        supabaseClient
+          .from("minutes")
+          .delete()
+          .eq("id", id)
+          .then(({ error }) => {
+            if (error) {
+              alert("Error deleting meeting minutes: " + error.message);
+              console.error("Error deleting meeting minutes:", error);
+            } else {
+              fetchMeetingMinutes();
+            }
+          });
+      };
+      window.startEditHome = startEditHome;
+      window.cancelEditHome = cancelEditHome;
+    });
   </script>
 </body>
 </html>
