@@ -225,7 +225,6 @@
 
     <!-- Tab Navigation -->
     <ul class="tabs">
-      <!-- New Home tab appears first -->
       <li class="active" data-tab="homeTab">Home</li>
       <li data-tab="blog">Blog</li>
       <li data-tab="events">Events</li>
@@ -237,30 +236,25 @@
     </ul>
 
     <!-- Tab Content Sections -->
-    <!-- Home Tab -->
     <div id="homeTab" class="tab-content active">
       <div id="homeDisplay">Loading...</div>
     </div>
 
-    <!-- Blog Tab -->
     <div id="blog" class="tab-content">
       <h2>Blog</h2>
       <div id="blogPosts">Loading...</div>
     </div>
 
-    <!-- Events Tab -->
     <div id="events" class="tab-content">
       <h2>Events</h2>
       <div id="eventList">Loading...</div>
     </div>
 
-    <!-- Committee Members Tab -->
     <div id="committee" class="tab-content">
       <h2>Committee Members</h2>
       <div id="committeeList">Loading...</div>
     </div>
 
-    <!-- Links Tab -->
     <div id="links" class="tab-content">
       <h2>Links</h2>
       <div id="linksList">Loading...</div>
@@ -274,7 +268,6 @@
       </div>
     </div>
 
-    <!-- Meeting Minutes Tab -->
     <div id="minutes" class="tab-content">
       <h2>Meeting Minutes</h2>
       <div id="minutesList">Loading...</div>
@@ -289,7 +282,6 @@
       </div>
     </div>
 
-    <!-- Add Entries Tab (Admin Only) -->
     <div id="entry" class="tab-content admin-tab">
       <h2>Add New Entries</h2>
       <div class="entry-section">
@@ -312,7 +304,6 @@
       </div>
     </div>
 
-    <!-- Add Committee Tab (Admin Only) -->
     <div id="addCommittee" class="tab-content admin-tab">
       <h2>Add Committee Member</h2>
       <form id="committeeForm">
@@ -340,7 +331,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Helper function to format dates to UK format
+      // Helper: Format dates to UK format (DD/MM/YYYY)
       function formatDate(dateString) {
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
@@ -349,12 +340,12 @@
         return `${day}/${month}/${year}`;
       }
 
-      // Initialize Supabase client
+      // Initialize Supabase
       const supabaseUrl = "https://hvpyeaouttceulkcowhr.supabase.co";
       const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2cHllYW91dHRjZXVsa2Nvd2hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMDE1NDIsImV4cCI6MjA1NDY3NzU0Mn0.rO5Q6lIcEjpmvpTy1yD2nqJi_wmuSVhl1Ojf0qOEgIU";
       const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-      /***** Global Data *****/
+      // Global data and admin mode flag
       let homeData = {};
       let blogPostsData = [];
       let eventsData = [];
@@ -363,7 +354,7 @@
       let meetingMinutesData = [];
       let adminMode = false;
 
-      /***** Fetch Functions *****/
+      // Fetch functions
       async function fetchHome() {
         const { data, error } = await supabaseClient
           .from("home")
@@ -443,7 +434,7 @@
         }
       }
 
-      /***** Rendering Functions *****/
+      // Rendering functions
       function renderHome() {
         const container = document.getElementById("homeTab");
         if (!homeData || !homeData.title) {
@@ -545,13 +536,13 @@
         }
         let html = "";
         linksData.forEach(link => {
+          let anchorStyle = adminMode ? 'style="pointer-events: none;"' : "";
           html += `<div class="post" data-id="${link.id}">
-                     <h3>${link.name}</h3>
-                     <p><a href="${link.url}" target="_blank">${link.url}</a></p>`;
+                     <h3><a href="${link.url}" target="_blank" ${anchorStyle}>${link.name}</a></h3>`;
           if (adminMode) {
             html += `<div class="controls">
-                       <button onclick="startEditLink(${link.id})">Edit</button>
-                       <button onclick="deleteLink(${link.id})">Delete</button>
+                       <button onclick="startEditLink('${link.id}')">Edit</button>
+                       <button onclick="deleteLink('${link.id}')">Delete</button>
                      </div>`;
           }
           html += `</div>`;
@@ -591,7 +582,7 @@
       /***** Inline Editing Functions *****/
       // Blog editing
       function startEdit(postId) {
-        const post = blogPostsData.find(p => p.id === postId);
+        const post = blogPostsData.find(p => p.id == postId);
         if (!post) return;
         const postDiv = document.querySelector(`.post[data-id="${postId}"]`);
         postDiv.innerHTML = `<form class="edit-form" onsubmit="submitEdit(event, ${postId})">
@@ -607,10 +598,11 @@
         const newDate = document.getElementById(`editDate_${postId}`).value;
         const newTitle = document.getElementById(`editTitle_${postId}`).value;
         const newContent = document.getElementById(`editContent_${postId}`).value;
+        console.log("submitEdit called for post", postId, newDate, newTitle, newContent);
         const { error } = await supabaseClient
           .from("blog_posts")
           .update({ date: newDate, title: newTitle, content: newContent })
-          .eq("id", postId);
+          .eq("id", Number(postId));
         if (error) {
           alert("Error updating post: " + error.message);
           console.error("Error updating post:", error);
@@ -623,7 +615,7 @@
       }
       // Event editing
       function startEditEvent(eventId) {
-        const eventData = eventsData.find(e => e.id === eventId);
+        const eventData = eventsData.find(e => e.id == eventId);
         if (!eventData) return;
         const eventDiv = document.querySelector(`.post[data-id="${eventId}"]`);
         eventDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditEvent(event, ${eventId})">
@@ -639,10 +631,11 @@
         const newTitle = document.getElementById(`editEventTitle_${eventId}`).value;
         const newDate = document.getElementById(`editEventDate_${eventId}`).value;
         const newDescription = document.getElementById(`editEventDescription_${eventId}`).value;
+        console.log("submitEditEvent called for event", eventId, newTitle, newDate, newDescription);
         const { error } = await supabaseClient
           .from("events")
           .update({ title: newTitle, date: newDate, description: newDescription })
-          .eq("id", eventId);
+          .eq("id", Number(eventId));
         if (error) {
           alert("Error updating event: " + error.message);
           console.error("Error updating event:", error);
@@ -655,7 +648,7 @@
       }
       // Committee editing
       function startEditCommittee(memberId) {
-        const member = committeeMembersData.find(m => m.id === memberId);
+        const member = committeeMembersData.find(m => m.id == memberId);
         if (!member) return;
         const memberDiv = document.querySelector(`.post[data-id="${memberId}"]`);
         memberDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditCommittee(event, ${memberId})">
@@ -673,10 +666,11 @@
         const newPosition = document.getElementById(`editCommitteePosition_${memberId}`).value;
         const newContact = document.getElementById(`editCommitteeContact_${memberId}`).value;
         const newImageUrl = document.getElementById(`editCommitteeImageUrl_${memberId}`).value;
+        console.log("submitEditCommittee called for member", memberId, newName, newPosition, newContact, newImageUrl);
         const { error } = await supabaseClient
           .from("committee_members")
           .update({ name: newName, position: newPosition, contact: newContact, image_url: newImageUrl })
-          .eq("id", memberId);
+          .eq("id", Number(memberId));
         if (error) {
           alert("Error updating committee member: " + error.message);
           console.error("Error updating committee member:", error);
@@ -687,22 +681,23 @@
       function cancelEditCommittee(memberId) {
         renderCommitteeMembers();
       }
-      // Link editing
+      // Link inline editing – using single quotes in the selector so that the correct element is targeted
       function startEditLink(linkId) {
-        const link = linksData.find(l => l.id === linkId);
+        const link = linksData.find(l => l.id == linkId);
         if (!link) return;
-        const linkDiv = document.querySelector(`.post[data-id="${linkId}"]`);
-        linkDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditLink(event, ${linkId})">
+        const linkDiv = document.querySelector(`.post[data-id='${linkId}']`);
+        linkDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditLink(event, '${linkId}')">
                                <input type="text" id="editLinkName_${linkId}" value="${link.name}" required>
                                <input type="text" id="editLinkURL_${linkId}" value="${link.url}" required>
                                <button type="submit">Save</button>
-                               <button type="button" onclick="cancelEditLink(${linkId})">Cancel</button>
+                               <button type="button" onclick="cancelEditLink('${linkId}')">Cancel</button>
                              </form>`;
       }
       async function submitEditLink(e, linkId) {
         e.preventDefault();
         const newName = document.getElementById(`editLinkName_${linkId}`).value;
         const newURL = document.getElementById(`editLinkURL_${linkId}`).value;
+        console.log("submitEditLink called for link", linkId, newName, newURL);
         const { error } = await supabaseClient
           .from("links")
           .update({ name: newName, url: newURL })
@@ -722,7 +717,8 @@
         event.stopPropagation();
         const contentElement = document.getElementById("blog-content-" + postId);
         const arrow = event.target;
-        if (contentElement.style.display === "none" || contentElement.style.display === "") {
+        const currentDisplay = window.getComputedStyle(contentElement).display;
+        if (currentDisplay === "none") {
           contentElement.style.display = "block";
           arrow.textContent = "▼";
         } else {
@@ -742,9 +738,9 @@
           arrow.textContent = "►";
         }
       }
-      // Meeting Minutes editing
+      // Meeting Minutes inline editing
       function startEditMinutes(id) {
-        const record = meetingMinutesData.find(r => r.id === id);
+        const record = meetingMinutesData.find(r => r.id == id);
         if (!record) return;
         const div = document.querySelector(`.post[data-id="${id}"]`);
         div.innerHTML = `<form class="edit-form" onsubmit="submitEditMinutes(event, ${id})">
@@ -760,10 +756,11 @@
         const newDate = document.getElementById("editMinutesDate_" + id).value;
         const newTitle = document.getElementById("editMinutesTitle_" + id).value;
         const newContent = document.getElementById("editMinutesContent_" + id).value;
+        console.log("submitEditMinutes called for id", id, newDate, newTitle, newContent);
         const { error } = await supabaseClient
           .from("minutes")
           .update({ date: newDate, title: newTitle, minutes: newContent })
-          .eq("id", id);
+          .eq("id", Number(id));
         if (error) {
           alert("Error updating meeting minutes: " + error.message);
           console.error("Error updating meeting minutes:", error);
@@ -788,10 +785,11 @@
         e.preventDefault();
         const newTitle = document.getElementById("editHomeTitle").value;
         const newContent = document.getElementById("editHomeContent").value;
+        console.log("submitEditHome called", newTitle, newContent);
         const { error } = await supabaseClient
           .from("home")
           .update({ title: newTitle, content: newContent })
-          .eq("id", homeData.id);
+          .eq("id", Number(homeData.id));
         if (error) {
           alert("Error updating home data: " + error.message);
           console.error("Error updating home data:", error);
@@ -912,7 +910,7 @@
         document.getElementById("minutesContent").value = "";
       });
 
-      /***** Drag & Drop for Committee Image Upload *****/
+      // Drag & Drop for Committee Image Upload
       const dropZone = document.getElementById("committeeDropZone");
       const previewImage = document.getElementById("committeePreview");
       dropZone.addEventListener("dragover", function(e) {
@@ -941,7 +939,7 @@
         }
       });
 
-      /***** Tab Switching Functionality *****/
+      // Tab Switching Functionality
       const tabs = document.querySelectorAll(".tabs li");
       const tabContents = document.querySelectorAll(".tab-content");
       tabs.forEach(tab => {
@@ -954,7 +952,7 @@
         });
       });
 
-      /***** ADMIN LOGIN FUNCTIONALITY *****/
+      // Admin Login Functionality
       const adminLink = document.getElementById("adminLink");
       const loginModal = document.getElementById("loginModal");
       const modalClose = document.getElementById("modalClose");
@@ -1007,7 +1005,7 @@
         }
       });
 
-      // On initial page load, fetch data
+      // On initial page load, fetch all data
       fetchHome();
       fetchBlogPosts();
       fetchEvents();
@@ -1015,85 +1013,30 @@
       fetchLinks();
       fetchMeetingMinutes();
 
-      /***** Expose Functions to Global Scope *****/
+      // Expose functions to global scope so inline onclicks work
       window.startEdit = startEdit;
-      window.deleteBlogPost = function(postId) {
-        supabaseClient
-          .from("blog_posts")
-          .delete()
-          .eq("id", postId)
-          .then(({ error }) => {
-            if (error) {
-              alert("Error deleting post: " + error.message);
-              console.error("Error deleting post:", error);
-            } else {
-              fetchBlogPosts();
-            }
-          });
-      };
+      window.submitEdit = submitEdit;
+      window.cancelEdit = cancelEdit;
       window.startEditEvent = startEditEvent;
-      window.deleteEvent = function(eventId) {
-        supabaseClient
-          .from("events")
-          .delete()
-          .eq("id", eventId)
-          .then(({ error }) => {
-            if (error) {
-              alert("Error deleting event: " + error.message);
-              console.error("Error deleting event:", error);
-            } else {
-              fetchEvents();
-            }
-          });
-      };
+      window.submitEditEvent = submitEditEvent;
+      window.cancelEditEvent = cancelEditEvent;
       window.startEditCommittee = startEditCommittee;
-      window.deleteCommitteeMember = function(memberId) {
-        supabaseClient
-          .from("committee_members")
-          .delete()
-          .eq("id", memberId)
-          .then(({ error }) => {
-            if (error) {
-              alert("Error deleting committee member: " + error.message);
-              console.error("Error deleting committee member:", error);
-            } else {
-              fetchCommitteeMembers();
-            }
-          });
-      };
+      window.submitEditCommittee = submitEditCommittee;
+      window.cancelEditCommittee = cancelEditCommittee;
       window.startEditLink = startEditLink;
-      window.deleteLink = function(linkId) {
-        supabaseClient
-          .from("links")
-          .delete()
-          .eq("id", linkId)
-          .then(({ error }) => {
-            if (error) {
-              alert("Error deleting link: " + error.message);
-              console.error("Error deleting link:", error);
-            } else {
-              fetchLinks();
-            }
-          });
-      };
+      window.submitEditLink = submitEditLink;
+      window.cancelEditLink = cancelEditLink;
       window.startEditMinutes = startEditMinutes;
-      window.deleteMinutes = function(id) {
-        supabaseClient
-          .from("minutes")
-          .delete()
-          .eq("id", id)
-          .then(({ error }) => {
-            if (error) {
-              alert("Error deleting meeting minutes: " + error.message);
-              console.error("Error deleting meeting minutes:", error);
-            } else {
-              fetchMeetingMinutes();
-            }
-          });
-      };
+      window.submitEditMinutes = submitEditMinutes;
+      window.cancelEditMinutes = cancelEditMinutes;
       window.startEditHome = startEditHome;
+      window.submitEditHome = submitEditHome;
       window.cancelEditHome = cancelEditHome;
+      window.toggleBlogEntry = toggleBlogEntry;
+      window.toggleMinutes = toggleMinutes;
     });
   </script>
 </body>
 </html>
+
+
