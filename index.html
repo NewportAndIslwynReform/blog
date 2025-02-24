@@ -15,7 +15,7 @@
       background-color: #f9f9f9;
     }
     .container {
-      width: 100%;               /* Added so container scales with browser */
+      width: 100%;
       max-width: 1000px;
       margin: 50px auto;
       background: #fff;
@@ -43,8 +43,8 @@
       font-size: 2rem;
       color: #333;
     }
-    /* Admin Link */
-    #adminLink {
+    /* Admin & About Links */
+    #adminLink, #aboutLink {
       position: fixed;
       top: 10px;
       right: 10px;
@@ -52,22 +52,27 @@
       font-size: 0.9rem;
       text-decoration: none;
       color: #333;
+      margin-left: 10px;
     }
-    #adminLink:hover {
+    #adminLink:hover, #aboutLink:hover {
       text-decoration: underline;
+    }
+    /* Position About link underneath Admin */
+    #aboutLink {
+      top: 30px;
     }
     /* Tabs */
     .tabs {
       display: flex;
-      flex-wrap: wrap;  /* allow wrapping on small screens */
-      width: 100%;      /* ensure tabs take full container width */
+      flex-wrap: wrap;
+      width: 100%;
       list-style: none;
       padding: 0;
       margin: 0 0 10px 0;
       border-bottom: 2px solid #333;
     }
     .tabs li {
-      flex: 1 1 0;      /* equally distribute available width */
+      flex: 1 1 0;
       text-align: center;
       padding: 10px 20px;
       cursor: pointer;
@@ -174,7 +179,7 @@
       object-fit: cover;
       margin-right: 15px;
     }
-    /* Modal Login */
+    /* Modal Login & About */
     .modal {
       display: none;
       position: fixed;
@@ -221,6 +226,8 @@
   
   <!-- Admin Link -->
   <a href="#" id="adminLink">Admin</a>
+  <!-- About Link (added underneath Admin) -->
+  <a href="#" id="aboutLink">About</a>
 
   <div class="container">
     <!-- Title Block (Left-Aligned) -->
@@ -334,6 +341,15 @@
     </div>
   </div>
 
+  <!-- Modal About Window -->
+  <div id="aboutModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="aboutModalClose">&times;</span>
+      <h2>About</h2>
+      <div id="aboutContent">Loading...</div>
+    </div>
+  </div>
+
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       // Helper: Format dates to UK format (DD/MM/YYYY)
@@ -441,23 +457,22 @@
 
       // Rendering functions
       function renderHome() {
-  const container = document.getElementById("homeTab");
-  if (!homeData || !homeData.title) {
-    container.innerText = "No home data found.";
-    return;
-  }
-  let html = `<div id="homeDisplay">
-                <h2>${homeData.title}</h2>
-                <p>${homeData.content}</p>
-
-              </div>`;
-  if (adminMode) {
-    html += `<div class="controls">
-               <button onclick="startEditHome()">Edit</button>
-             </div>`;
-  }
-  container.innerHTML = html;
-}
+        const container = document.getElementById("homeTab");
+        if (!homeData || !homeData.title) {
+          container.innerText = "No home data found.";
+          return;
+        }
+        let html = `<div id="homeDisplay">
+                      <h2>${homeData.title}</h2>
+                      <p>${homeData.content}</p>
+                    </div>`;
+        if (adminMode) {
+          html += `<div class="controls">
+                     <button onclick="startEditHome()">Edit</button>
+                   </div>`;
+        }
+        container.innerHTML = html;
+      }
       function renderBlogPosts() {
         const container = document.getElementById("blogPosts");
         if (!blogPostsData || blogPostsData.length === 0) {
@@ -1008,6 +1023,35 @@
       window.addEventListener("click", function(event) {
         if (event.target === loginModal) {
           loginModal.style.display = "none";
+        }
+      });
+
+      // About Link Functionality
+      document.getElementById("aboutLink").addEventListener("click", async function(e) {
+        e.preventDefault();
+        // Retrieve the about content from the password table (assumes one row with an "about" column)
+        const { data, error } = await supabaseClient
+          .from("password")
+          .select("about")
+          .limit(1);
+        if (error) {
+          alert("Error retrieving About content: " + error.message);
+          console.error("Error retrieving About content:", error);
+          return;
+        }
+        if (data.length > 0) {
+          document.getElementById("aboutContent").innerHTML = data[0].about;
+          document.getElementById("aboutModal").style.display = "block";
+        } else {
+          alert("No About content found.");
+        }
+      });
+      document.getElementById("aboutModalClose").addEventListener("click", function() {
+        document.getElementById("aboutModal").style.display = "none";
+      });
+      window.addEventListener("click", function(event) {
+        if (event.target === document.getElementById("aboutModal")) {
+          document.getElementById("aboutModal").style.display = "none";
         }
       });
 
