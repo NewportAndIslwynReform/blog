@@ -15,6 +15,7 @@
       background-color: #f9f9f9;
     }
     .container {
+      width: 100%;               /* Added so container scales with browser */
       max-width: 1000px;
       margin: 50px auto;
       background: #fff;
@@ -58,12 +59,16 @@
     /* Tabs */
     .tabs {
       display: flex;
+      flex-wrap: wrap;  /* allow wrapping on small screens */
+      width: 100%;      /* ensure tabs take full container width */
       list-style: none;
       padding: 0;
       margin: 0 0 10px 0;
       border-bottom: 2px solid #333;
     }
     .tabs li {
+      flex: 1 1 0;      /* equally distribute available width */
+      text-align: center;
       padding: 10px 20px;
       cursor: pointer;
       background: #f1f1f1;
@@ -436,22 +441,23 @@
 
       // Rendering functions
       function renderHome() {
-        const container = document.getElementById("homeTab");
-        if (!homeData || !homeData.title) {
-          container.innerText = "No home data found.";
-          return;
-        }
-        let html = `<div id="homeDisplay">
-                      <h2>${homeData.title}</h2>
-                      <p>${homeData.content}</p>
-                    </div>`;
-        if (adminMode) {
-          html += `<div class="controls">
-                     <button onclick="startEditHome()">Edit</button>
-                   </div>`;
-        }
-        container.innerHTML = html;
-      }
+  const container = document.getElementById("homeTab");
+  if (!homeData || !homeData.title) {
+    container.innerText = "No home data found.";
+    return;
+  }
+  let html = `<div id="homeDisplay">
+                <h2>${homeData.title}</h2>
+                <p>${homeData.content}</p>
+
+              </div>`;
+  if (adminMode) {
+    html += `<div class="controls">
+               <button onclick="startEditHome()">Edit</button>
+             </div>`;
+  }
+  container.innerHTML = html;
+}
       function renderBlogPosts() {
         const container = document.getElementById("blogPosts");
         if (!blogPostsData || blogPostsData.length === 0) {
@@ -1038,5 +1044,3 @@
   </script>
 </body>
 </html>
-
-
