@@ -24,42 +24,38 @@
       box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
       position: relative;
     }
-    /* Logo */
+    /* Title Block (Left-Aligned) with inline logo and links */
+    .title-block {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .title-left {
+      display: flex;
+      align-items: center;
+    }
     #logo {
-      position: fixed;
-      top: 10px;
-      left: 10px;
+      display: inline-block;
+      vertical-align: middle;
       width: 80px;
       height: auto;
-      z-index: 120;
-    }
-    /* Title Block (Left-Aligned) */
-    .title-block {
-      text-align: left;
-      margin-bottom: 20px;
+      margin-right: 10px;
     }
     .title-block h1 {
       margin: 0;
       font-size: 2rem;
       color: #333;
+      display: inline-block;
     }
-    /* Admin & About Links */
-    #adminLink, #aboutLink {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 110;
+    .title-links a {
       font-size: 0.9rem;
       text-decoration: none;
       color: #333;
       margin-left: 10px;
     }
-    #adminLink:hover, #aboutLink:hover {
+    .title-links a:hover {
       text-decoration: underline;
-    }
-    /* Position About link underneath Admin */
-    #aboutLink {
-      top: 30px;
     }
     /* Tabs */
     .tabs {
@@ -179,7 +175,7 @@
       object-fit: cover;
       margin-right: 15px;
     }
-    /* Drop Zone (for news image) */
+    /* Drop Zone */
     .drop-zone {
       border: 2px dashed #ccc;
       padding: 10px;
@@ -231,18 +227,19 @@
   </style>
 </head>
 <body>
-  <!-- Logo -->
-  <img id="logo" src="https://assets.nationbuilder.com/reformuk/sites/10/meta_images/original/PROFILEPIC600.jpg?1720530274" alt="Logo">
-  
-  <!-- Admin Link -->
-  <a href="#" id="adminLink">Admin</a>
-  <!-- About Link -->
-  <a href="#" id="aboutLink">About</a>
+  <!-- Removed fixed Admin and About links; they are now in the title block -->
 
   <div class="container">
-    <!-- Title Block (Left-Aligned) -->
+    <!-- Title Block with Logo on Left and Admin/About Links on Right -->
     <div class="title-block">
-      <h1>Newport & Islwyn Branch Reform UK</h1>
+      <div class="title-left">
+        <img id="logo" src="https://assets.nationbuilder.com/reformuk/sites/10/meta_images/original/PROFILEPIC600.jpg?1720530274" alt="Logo">
+        <h1>Newport & Islwyn Branch Reform UK</h1>
+      </div>
+      <div class="title-links">
+        <a href="#" id="adminLink">Admin</a>
+        <a href="#" id="aboutLink">About</a>
+      </div>
     </div>
 
     <!-- Tab Navigation -->
@@ -338,7 +335,7 @@
           <input type="date" id="newsDate" placeholder="News Date" required>
           <input type="text" id="newsTitle" placeholder="News Title" required>
           <textarea id="newsText" placeholder="News Text" rows="4" required></textarea>
-          <!-- Replacing the text input for news_image with a drop zone -->
+          <!-- Replace text input with drop zone for news image -->
           <div id="newsDropZone" class="drop-zone">
             <img id="newsPreview" class="committee-img" src="https://placehold.co/80" alt="Drop image here">
             <p>Drag & drop an image here</p>
@@ -536,7 +533,7 @@
                        </div>
                        <div id="news-content-${item.id}" class="entry-content" style="display:none;">
                          <div style="text-align:center;">
-                           <img src="${item.news_image}" alt="News Image" style="max-width:100%; height:auto;">
+                           <img src="${item.news_image}" alt="News Image" style="max-width:30%; height:auto;">
                          </div>
                          <p>${item.news_text}</p>
                        </div>
@@ -549,6 +546,7 @@
         });
         container.innerHTML = html;
       }
+
       function startEditNews(newsId) {
         const item = newsData.find(n => n.id == newsId);
         if (!item) return;
@@ -564,7 +562,6 @@
                                <button type="submit">Save</button>
                                <button type="button" onclick="cancelEditNews(${newsId})">Cancel</button>
                              </form>`;
-        // Add drag and drop for the edit drop zone
         const newsEditDropZone = document.getElementById("newsEditDropZone_" + newsId);
         const newsEditPreview = document.getElementById("newsEditPreview_" + newsId);
         newsEditDropZone.addEventListener("dragover", function(e) {
@@ -1146,7 +1143,6 @@
         const date = document.getElementById("newsDate").value;
         const title = document.getElementById("newsTitle").value;
         const text = document.getElementById("newsText").value;
-        // Get the image from the drop zone preview
         const image = document.getElementById("newsPreview").src;
         addNewsItem(date, title, text, image);
         document.getElementById("newsDate").value = "";
@@ -1308,7 +1304,7 @@
         }
       });
 
-      // New: Toggle function for News entries (for both public and manage sections)
+      // New: Toggle function for News entries
       function toggleNewsEntry(newsId, event) {
         event.stopPropagation();
         const contentElement = document.getElementById("news-content-" + newsId);
