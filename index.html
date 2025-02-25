@@ -138,25 +138,25 @@
     .post h2, .item h3 {
       margin: 5px 0;
     }
-    /* Collapsible Blog Entry */
-    .blog-entry .blog-header {
+    /* Collapsible Entry (Blog, News, Minutes) */
+    .entry .entry-header {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       cursor: pointer;
     }
-    .blog-header .toggle-arrow {
+    .entry-header .toggle-arrow {
       display: inline-block;
       width: 1.2em;
       font-size: 1.2em;
       margin-bottom: 5px;
     }
-    .blog-header p {
+    .entry-header p {
       margin: 0;
       font-size: 0.9em;
       color: #666;
     }
-    .blog-content {
+    .entry-content {
       display: none;
       margin-top: 10px;
     }
@@ -178,6 +178,16 @@
       border-radius: 50%;
       object-fit: cover;
       margin-right: 15px;
+    }
+    /* Drop Zone (for news image) */
+    .drop-zone {
+      border: 2px dashed #ccc;
+      padding: 10px;
+      text-align: center;
+      margin: 5px 0;
+    }
+    .drop-zone--over {
+      border-color: #007BFF;
     }
     /* Modal Login & About */
     .modal {
@@ -226,7 +236,7 @@
   
   <!-- Admin Link -->
   <a href="#" id="adminLink">Admin</a>
-  <!-- About Link (added underneath Admin) -->
+  <!-- About Link -->
   <a href="#" id="aboutLink">About</a>
 
   <div class="container">
@@ -238,11 +248,12 @@
     <!-- Tab Navigation -->
     <ul class="tabs">
       <li class="active" data-tab="homeTab">Home</li>
+      <li data-tab="news">News</li>
       <li data-tab="blog">Blog</li>
       <li data-tab="events">Events</li>
-      <li data-tab="committee">Committee Members</li>
+      <li data-tab="committee">Committee</li>
       <li data-tab="links">Links</li>
-      <li data-tab="minutes">Meeting Minutes</li>
+      <li data-tab="minutes">Minutes</li>
       <li data-tab="entry" class="admin-tab">Add Entries</li>
       <li data-tab="addCommittee" class="admin-tab">Add Committee</li>
     </ul>
@@ -250,6 +261,12 @@
     <!-- Tab Content Sections -->
     <div id="homeTab" class="tab-content active">
       <div id="homeDisplay">Loading...</div>
+    </div>
+    
+    <!-- News Tab Content (public view) -->
+    <div id="news" class="tab-content">
+      <h2>News</h2>
+      <div id="newsList">Loading...</div>
     </div>
 
     <div id="blog" class="tab-content">
@@ -263,7 +280,7 @@
     </div>
 
     <div id="committee" class="tab-content">
-      <h2>Committee Members</h2>
+      <h2>Committee</h2>
       <div id="committeeList">Loading...</div>
     </div>
 
@@ -281,7 +298,7 @@
     </div>
 
     <div id="minutes" class="tab-content">
-      <h2>Meeting Minutes</h2>
+      <h2>Minutes</h2>
       <div id="minutesList">Loading...</div>
       <div id="minutesFormContainer" class="admin-only">
         <h3>Add New Meeting Minutes</h3>
@@ -294,6 +311,7 @@
       </div>
     </div>
 
+    <!-- Add Entries Tab (Admin Only) -->
     <div id="entry" class="tab-content admin-tab">
       <h2>Add New Entries</h2>
       <div class="entry-section">
@@ -313,6 +331,22 @@
           <textarea id="eventDescription" placeholder="Event Description" rows="4" required></textarea>
           <button type="submit">Add Event</button>
         </form>
+      </div>
+      <div class="entry-section">
+        <h3>New News Item</h3>
+        <form id="newsForm">
+          <input type="date" id="newsDate" placeholder="News Date" required>
+          <input type="text" id="newsTitle" placeholder="News Title" required>
+          <textarea id="newsText" placeholder="News Text" rows="4" required></textarea>
+          <!-- Replacing the text input for news_image with a drop zone -->
+          <div id="newsDropZone" class="drop-zone">
+            <img id="newsPreview" class="committee-img" src="https://placehold.co/80" alt="Drop image here">
+            <p>Drag & drop an image here</p>
+          </div>
+          <button type="submit">Add News Item</button>
+        </form>
+        <h3>Manage News Items</h3>
+        <div id="newsEntries">Loading...</div>
       </div>
     </div>
 
@@ -369,6 +403,7 @@
       // Global data and admin mode flag
       let homeData = {};
       let blogPostsData = [];
+      let newsData = [];
       let eventsData = [];
       let committeeMembersData = [];
       let linksData = [];
@@ -400,6 +435,22 @@
         } else {
           blogPostsData = data;
           renderBlogPosts();
+        }
+      }
+      async function fetchNews() {
+        const { data, error } = await supabaseClient
+          .from("news")
+          .select("*")
+          .order("news_date", { ascending: false });
+        if (error) {
+          document.getElementById("newsList").innerText = "Error: " + error.message;
+          console.error("Error fetching news:", error);
+        } else {
+          newsData = data;
+          renderNews();
+          if(document.getElementById("newsEntries")){
+            renderNewsEntries();
+          }
         }
       }
       async function fetchEvents() {
@@ -455,7 +506,128 @@
         }
       }
 
-      // Rendering functions
+      // New: News Add/Edit/Delete Functions
+      async function addNewsItem(date, title, text, image) {
+        const { error } = await supabaseClient
+          .from("news")
+          .insert([{ news_date: date, news_title: title, news_text: text, news_image: image }]);
+        if (error) {
+          alert("Error adding news item: " + error.message);
+          console.error("Error adding news item:", error);
+        } else {
+          fetchNews();
+        }
+      }
+
+      function renderNewsEntries() {
+        const container = document.getElementById("newsEntries");
+        if (!newsData || newsData.length === 0) {
+          container.innerText = "No news items found.";
+          return;
+        }
+        let html = "";
+        newsData.forEach(item => {
+          html += `<div class="post" data-id="${item.id}">
+                     <div class="entry">
+                       <div class="entry-header">
+                         <span class="toggle-arrow" onclick="toggleNewsEntry(${item.id}, event)">►</span>
+                         <p><em>${formatDate(item.news_date)}</em></p>
+                         <h2>${item.news_title}</h2>
+                       </div>
+                       <div id="news-content-${item.id}" class="entry-content" style="display:none;">
+                         <div style="text-align:center;">
+                           <img src="${item.news_image}" alt="News Image" style="max-width:100%; height:auto;">
+                         </div>
+                         <p>${item.news_text}</p>
+                       </div>
+                     </div>
+                     <div class="controls">
+                       <button onclick="startEditNews(${item.id})">Edit</button>
+                       <button onclick="deleteNewsItem(${item.id})">Delete</button>
+                     </div>
+                   </div>`;
+        });
+        container.innerHTML = html;
+      }
+      function startEditNews(newsId) {
+        const item = newsData.find(n => n.id == newsId);
+        if (!item) return;
+        const newsDiv = document.querySelector(`#newsEntries .post[data-id="${newsId}"]`);
+        newsDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditNews(event, ${newsId})">
+                               <input type="date" id="editNewsDate_${newsId}" value="${item.news_date}" required>
+                               <input type="text" id="editNewsTitle_${newsId}" value="${item.news_title}" required>
+                               <textarea id="editNewsText_${newsId}" rows="4" required>${item.news_text}</textarea>
+                               <div id="newsEditDropZone_${newsId}" class="drop-zone">
+                                 <img id="newsEditPreview_${newsId}" class="committee-img" src="${item.news_image}" alt="Drop image here">
+                                 <p>Drag & drop an image here</p>
+                               </div>
+                               <button type="submit">Save</button>
+                               <button type="button" onclick="cancelEditNews(${newsId})">Cancel</button>
+                             </form>`;
+        // Add drag and drop for the edit drop zone
+        const newsEditDropZone = document.getElementById("newsEditDropZone_" + newsId);
+        const newsEditPreview = document.getElementById("newsEditPreview_" + newsId);
+        newsEditDropZone.addEventListener("dragover", function(e) {
+          e.preventDefault();
+          newsEditDropZone.classList.add("drop-zone--over");
+        });
+        newsEditDropZone.addEventListener("dragleave", function(e) {
+          e.preventDefault();
+          newsEditDropZone.classList.remove("drop-zone--over");
+        });
+        newsEditDropZone.addEventListener("drop", function(e) {
+          e.preventDefault();
+          newsEditDropZone.classList.remove("drop-zone--over");
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith("image/")) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                newsEditPreview.src = e.target.result;
+              };
+              reader.readAsDataURL(file);
+            } else {
+              alert("Please drop an image file.");
+            }
+          }
+        });
+      }
+      async function submitEditNews(e, newsId) {
+        e.preventDefault();
+        const newDate = document.getElementById(`editNewsDate_${newsId}`).value;
+        const newTitle = document.getElementById(`editNewsTitle_${newsId}`).value;
+        const newText = document.getElementById(`editNewsText_${newsId}`).value;
+        const newImage = document.getElementById(`newsEditPreview_${newsId}`).src;
+        console.log("submitEditNews called for news", newsId, newDate, newTitle, newText, newImage);
+        const { error } = await supabaseClient
+          .from("news")
+          .update({ news_date: newDate, news_title: newTitle, news_text: newText, news_image: newImage })
+          .eq("id", Number(newsId));
+        if (error) {
+          alert("Error updating news item: " + error.message);
+          console.error("Error updating news item:", error);
+        } else {
+          fetchNews();
+        }
+      }
+      function cancelEditNews(newsId) {
+        renderNewsEntries();
+      }
+      async function deleteNewsItem(newsId) {
+        const { error } = await supabaseClient
+          .from("news")
+          .delete()
+          .eq("id", newsId);
+        if (error) {
+          alert("Error deleting news item: " + error.message);
+          console.error("Error deleting news item:", error);
+        } else {
+          fetchNews();
+        }
+      }
+
+      // Rendering functions for other sections remain unchanged
       function renderHome() {
         const container = document.getElementById("homeTab");
         if (!homeData || !homeData.title) {
@@ -482,13 +654,13 @@
         let html = "";
         blogPostsData.forEach(post => {
           html += `<div class="post" data-id="${post.id}">
-                     <div class="blog-entry">
-                       <div class="blog-header">
+                     <div class="entry">
+                       <div class="entry-header">
                          <span class="toggle-arrow" onclick="toggleBlogEntry(${post.id}, event)">►</span>
                          <p><em>${formatDate(post.date)}</em></p>
                          <h2>${post.title}</h2>
                        </div>
-                       <div id="blog-content-${post.id}" class="blog-content" style="display:none;">
+                       <div id="blog-content-${post.id}" class="entry-content" style="display:none;">
                          <p>${post.content}</p>
                        </div>
                      </div>`;
@@ -499,6 +671,32 @@
                      </div>`;
           }
           html += `</div>`;
+        });
+        container.innerHTML = html;
+      }
+      function renderNews() {
+        const container = document.getElementById("newsList");
+        if (!newsData || newsData.length === 0) {
+          container.innerText = "No news found.";
+          return;
+        }
+        let html = "";
+        newsData.forEach(item => {
+          html += `<div class="post" data-id="${item.id}">
+                     <div class="entry">
+                       <div class="entry-header">
+                         <span class="toggle-arrow" onclick="toggleNewsEntry(${item.id}, event)">►</span>
+                         <p><em>${formatDate(item.news_date)}</em></p>
+                         <h2>${item.news_title}</h2>
+                       </div>
+                       <div id="news-content-${item.id}" class="entry-content" style="display:none;">
+                         <div style="text-align:center;">
+                           <img src="${item.news_image}" alt="News Image" style="max-width:20%; height:auto;">
+                         </div>
+                         <p>${item.news_text}</p>
+                       </div>
+                     </div>
+                   </div>`;
         });
         container.innerHTML = html;
       }
@@ -579,13 +777,13 @@
         let html = "";
         meetingMinutesData.forEach(record => {
           html += `<div class="post" data-id="${record.id}">
-                     <div class="blog-entry">
-                       <div class="blog-header">
+                     <div class="entry">
+                       <div class="entry-header">
                          <span class="toggle-arrow" onclick="toggleMinutes(${record.id}, event)">►</span>
                          <p><em>${formatDate(record.date)}</em></p>
                          <h2>${record.title}</h2>
                        </div>
-                       <div id="minutes-content-${record.id}" class="blog-content" style="display:none;">
+                       <div id="minutes-content-${record.id}" class="entry-content" style="display:none;">
                          <p>${record.minutes}</p>
                        </div>
                      </div>`;
@@ -702,7 +900,7 @@
       function cancelEditCommittee(memberId) {
         renderCommitteeMembers();
       }
-      // Link inline editing – using single quotes in the selector so that the correct element is targeted
+      // Link inline editing
       function startEditLink(linkId) {
         const link = linksData.find(l => l.id == linkId);
         if (!link) return;
@@ -737,6 +935,19 @@
       function toggleBlogEntry(postId, event) {
         event.stopPropagation();
         const contentElement = document.getElementById("blog-content-" + postId);
+        const arrow = event.target;
+        const currentDisplay = window.getComputedStyle(contentElement).display;
+        if (currentDisplay === "none") {
+          contentElement.style.display = "block";
+          arrow.textContent = "▼";
+        } else {
+          contentElement.style.display = "none";
+          arrow.textContent = "►";
+        }
+      }
+      function toggleNewsEntry(newsId, event) {
+        event.stopPropagation();
+        const contentElement = document.getElementById("news-content-" + newsId);
         const arrow = event.target;
         const currentDisplay = window.getComputedStyle(contentElement).display;
         if (currentDisplay === "none") {
@@ -930,6 +1141,19 @@
         document.getElementById("minutesTitle").value = "";
         document.getElementById("minutesContent").value = "";
       });
+      document.getElementById("newsForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const date = document.getElementById("newsDate").value;
+        const title = document.getElementById("newsTitle").value;
+        const text = document.getElementById("newsText").value;
+        // Get the image from the drop zone preview
+        const image = document.getElementById("newsPreview").src;
+        addNewsItem(date, title, text, image);
+        document.getElementById("newsDate").value = "";
+        document.getElementById("newsTitle").value = "";
+        document.getElementById("newsText").value = "";
+        document.getElementById("newsPreview").src = "https://placehold.co/80";
+      });
 
       // Drag & Drop for Committee Image Upload
       const dropZone = document.getElementById("committeeDropZone");
@@ -952,6 +1176,35 @@
             const reader = new FileReader();
             reader.onload = function(e) {
               previewImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          } else {
+            alert("Please drop an image file.");
+          }
+        }
+      });
+
+      // Drag & Drop for News Image Upload in Add Entries tab
+      const newsDropZone = document.getElementById("newsDropZone");
+      const newsPreview = document.getElementById("newsPreview");
+      newsDropZone.addEventListener("dragover", function(e) {
+        e.preventDefault();
+        newsDropZone.classList.add("drop-zone--over");
+      });
+      newsDropZone.addEventListener("dragleave", function(e) {
+        e.preventDefault();
+        newsDropZone.classList.remove("drop-zone--over");
+      });
+      newsDropZone.addEventListener("drop", function(e) {
+        e.preventDefault();
+        newsDropZone.classList.remove("drop-zone--over");
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              newsPreview.src = e.target.result;
             };
             reader.readAsDataURL(file);
           } else {
@@ -1010,6 +1263,7 @@
           adminMode = true;
           fetchHome();
           fetchBlogPosts();
+          fetchNews();
           fetchEvents();
           fetchCommitteeMembers();
           fetchLinks();
@@ -1029,7 +1283,6 @@
       // About Link Functionality
       document.getElementById("aboutLink").addEventListener("click", async function(e) {
         e.preventDefault();
-        // Retrieve the about content from the password table (assumes one row with an "about" column)
         const { data, error } = await supabaseClient
           .from("password")
           .select("about")
@@ -1055,9 +1308,25 @@
         }
       });
 
+      // New: Toggle function for News entries (for both public and manage sections)
+      function toggleNewsEntry(newsId, event) {
+        event.stopPropagation();
+        const contentElement = document.getElementById("news-content-" + newsId);
+        const arrow = event.target;
+        const currentDisplay = window.getComputedStyle(contentElement).display;
+        if (currentDisplay === "none") {
+          contentElement.style.display = "block";
+          arrow.textContent = "▼";
+        } else {
+          contentElement.style.display = "none";
+          arrow.textContent = "►";
+        }
+      }
+
       // On initial page load, fetch all data
       fetchHome();
       fetchBlogPosts();
+      fetchNews();
       fetchEvents();
       fetchCommitteeMembers();
       fetchLinks();
@@ -1083,7 +1352,12 @@
       window.submitEditHome = submitEditHome;
       window.cancelEditHome = cancelEditHome;
       window.toggleBlogEntry = toggleBlogEntry;
+      window.toggleNewsEntry = toggleNewsEntry;
       window.toggleMinutes = toggleMinutes;
+      window.startEditNews = startEditNews;
+      window.submitEditNews = submitEditNews;
+      window.cancelEditNews = cancelEditNews;
+      window.deleteNewsItem = deleteNewsItem;
     });
   </script>
 </body>
