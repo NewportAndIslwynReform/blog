@@ -1,36 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" href="https://pro-worker.reformparty.uk/images/favicon.ico" type="image/x-icon" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="https://pro-worker.reformparty.uk/images/favicon.ico" type="image/x-icon" />
   <title>Newport & Islwyn Branch Reform UK</title>
   <!-- Load Supabase client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
   <style>
     /* Basic Reset & Layout */
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
       background-color: #f9f9f9;
+    }
+    /* Set all text (except title) to Gotham Black */
+    body, .container, p, li, input, textarea, button, div, span, a, h2, h3, .entry, .tabs li, .title-links {
+      font-family: 'Gotham Black', sans-serif;
     }
     .container {
       width: 100%;
       max-width: 1000px;
       margin: 50px auto;
-      background: #a2dbe1;
+      background: #00bed6; /* Changed background color */
       padding: 20px;
       border-radius: 4px;
       box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
       position: relative;
     }
-    /* Title Block (Left-Aligned) with inline logo and links */
+    /* Title Block with inline logo, title, and links */
     .title-block {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+      background-color: white; /* Title block background changed to white */
+      padding: 10px;
     }
     .title-left {
       display: flex;
@@ -47,6 +53,7 @@
       margin: 0;
       font-size: 2rem;
       color: #333;
+      font-family: 'Anton', sans-serif; /* Title font remains Anton */
       display: inline-block;
     }
     .title-links a {
@@ -58,34 +65,47 @@
     .title-links a:hover {
       text-decoration: underline;
     }
-    /* Tabs */
+    /* Hamburger Menu Icon */
+    #menuIcon {
+      font-size: 2rem;
+      cursor: pointer;
+      margin: 20px 0 10px 10px; /* Moved down further so it doesn't cover the logo */
+      display: inline-block;
+    }
+    /* Hide tabs by default */
     .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      width: 100%;
+      display: none;
       list-style: none;
       padding: 0;
-      margin: 0 0 10px 0;
-      border-bottom: 2px solid #333;
+      margin: 0;
     }
-    .tabs li {
-      flex: 1 1 0;
-      text-align: center;
-      padding: 10px 20px;
+    /* When menu is active, show tabs as a vertical menu */
+    .menu-active .tabs {
+      display: block;
+      position: absolute;
+      top: 120px; /* Moved down so it does not cover the logo */
+      left: 10px;
+      width: 200px;
+      background: #fff;
+      border: 1px solid #333;
+      z-index: 100;
+    }
+    /* Ensure admin-only menu items remain hidden if not in admin mode */
+    .menu-active .tabs li.admin-tab {
+      display: none;
+    }
+    .menu-active .tabs li {
+      display: block;
+      margin: 0;
+      border: none;
+      padding: 10px;
+      text-align: left;
       cursor: pointer;
       background: #f1f1f1;
-      margin-right: 5px;
-      border-top-left-radius: 4px;
-      border-top-right-radius: 4px;
-      transition: background 0.3s;
+      border-bottom: 1px solid #ccc;
     }
-    .tabs li:hover {
+    .menu-active .tabs li:hover {
       background: #e2e2e2;
-    }
-    .tabs li.active {
-      background: #fff;
-      border: 2px solid #333;
-      border-bottom: none;
     }
     .admin-tab {
       display: none;
@@ -228,14 +248,12 @@
   </style>
 </head>
 <body>
-  <!-- Removed fixed Admin and About links; they are now in the title block -->
-
   <div class="container">
     <!-- Title Block with Logo on Left and Admin/About Links on Right -->
     <div class="title-block">
       <div class="title-left">
         <img id="logo" src="https://assets.nationbuilder.com/reformuk/sites/10/meta_images/original/PROFILEPIC600.jpg?1720530274" alt="Logo">
-        <h1>Newport & Islwyn Branch Reform UK</h1>
+        <h1>NEWPORT & ISLWYN BRANCH</h1>
       </div>
       <div class="title-links">
         <a href="#" id="adminLink">Admin</a>
@@ -243,9 +261,12 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
+    <!-- Hamburger Menu Icon -->
+    <div id="menuIcon">&#9776;</div>
+
+    <!-- Tab Navigation (vertical menu, hidden by default) -->
     <ul class="tabs">
-      <li class="active" data-tab="homeTab">Home</li>
+      <li data-tab="homeTab">Home</li>
       <li data-tab="news">News</li>
       <li data-tab="blog">Blog</li>
       <li data-tab="events">Events</li>
@@ -336,7 +357,7 @@
           <input type="date" id="newsDate" placeholder="News Date" required>
           <input type="text" id="newsTitle" placeholder="News Title" required>
           <textarea id="newsText" placeholder="News Text" rows="4" required></textarea>
-          <!-- Replace text input with drop zone for news image -->
+          <!-- Drop zone for news image -->
           <div id="newsDropZone" class="drop-zone">
             <img id="newsPreview" class="committee-img" src="https://placehold.co/80" alt="Drop image here">
             <p>Drag & drop an image here</p>
@@ -625,7 +646,7 @@
         }
       }
 
-      // Rendering functions for other sections remain unchanged
+      // Rendering functions for other sections
       function renderHome() {
         const container = document.getElementById("homeTab");
         if (!homeData || !homeData.title) {
@@ -1210,9 +1231,10 @@
         }
       });
 
-      // Tab Switching Functionality
+      // Tab/Menu Switching Functionality
       const tabs = document.querySelectorAll(".tabs li");
       const tabContents = document.querySelectorAll(".tab-content");
+      // When a menu item is clicked, hide the menu
       tabs.forEach(tab => {
         tab.addEventListener("click", () => {
           const target = tab.getAttribute("data-tab");
@@ -1220,7 +1242,13 @@
           tabContents.forEach(content => content.classList.remove("active"));
           tab.classList.add("active");
           document.getElementById(target).classList.add("active");
+          // Hide the menu after selection
+          document.querySelector(".container").classList.remove("menu-active");
         });
+      });
+      // Toggle menu when hamburger icon is clicked
+      document.getElementById("menuIcon").addEventListener("click", function() {
+        document.querySelector(".container").classList.toggle("menu-active");
       });
 
       // Admin Login Functionality
