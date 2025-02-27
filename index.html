@@ -23,19 +23,19 @@
       width: 100%;
       max-width: 1000px;
       margin: 50px auto;
-      background: #00bed6; /* Changed background color */
+      background: #00bed6;
       padding: 20px;
       border-radius: 4px;
       box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
       position: relative;
     }
-    /* Title Block with inline logo, title, and links */
+    /* Title Block with inline logo and title */
     .title-block {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 10px;
-      background-color: white; /* Title block background changed to white */
+      background-color: white;
       padding: 10px;
     }
     .title-left {
@@ -53,23 +53,14 @@
       margin: 0;
       font-size: 2rem;
       color: #333;
-      font-family: 'Anton', sans-serif; /* Title font remains Anton */
+      font-family: 'Anton', sans-serif;
       display: inline-block;
-    }
-    .title-links a {
-      font-size: 0.9rem;
-      text-decoration: none;
-      color: #333;
-      margin-left: 10px;
-    }
-    .title-links a:hover {
-      text-decoration: underline;
     }
     /* Hamburger Menu Icon */
     #menuIcon {
       font-size: 2rem;
       cursor: pointer;
-      margin: 20px 0 10px 10px; /* Moved down further so it doesn't cover the logo */
+      margin: 20px 0 10px 10px;
       display: inline-block;
     }
     /* Hide tabs by default */
@@ -83,7 +74,7 @@
     .menu-active .tabs {
       display: block;
       position: absolute;
-      top: 120px; /* Moved down so it does not cover the logo */
+      top: 120px; /* Moved down so it doesn't cover the logo */
       left: 10px;
       width: 200px;
       background: #fff;
@@ -249,22 +240,18 @@
 </head>
 <body>
   <div class="container">
-    <!-- Title Block with Logo on Left and Admin/About Links on Right -->
+    <!-- Title Block with Logo on Left and (no links here) -->
     <div class="title-block">
       <div class="title-left">
         <img id="logo" src="https://assets.nationbuilder.com/reformuk/sites/10/meta_images/original/PROFILEPIC600.jpg?1720530274" alt="Logo">
         <h1>NEWPORT & ISLWYN BRANCH</h1>
-      </div>
-      <div class="title-links">
-        <a href="#" id="adminLink">Admin</a>
-        <a href="#" id="aboutLink">About</a>
       </div>
     </div>
 
     <!-- Hamburger Menu Icon -->
     <div id="menuIcon">&#9776;</div>
 
-    <!-- Tab Navigation (vertical menu, hidden by default) -->
+    <!-- Tab Navigation (vertical menu) -->
     <ul class="tabs">
       <li data-tab="homeTab">Home</li>
       <li data-tab="news">News</li>
@@ -273,6 +260,8 @@
       <li data-tab="committee">Committee</li>
       <li data-tab="links">Links</li>
       <li data-tab="minutes">Minutes</li>
+      <li id="adminLink">Admin</li>
+      <li id="aboutLink">About</li>
       <li data-tab="entry" class="admin-tab">Add Entries</li>
       <li data-tab="addCommittee" class="admin-tab">Add Committee</li>
     </ul>
@@ -1241,7 +1230,9 @@
           tabs.forEach(t => t.classList.remove("active"));
           tabContents.forEach(content => content.classList.remove("active"));
           tab.classList.add("active");
-          document.getElementById(target).classList.add("active");
+          if (target) {
+            document.getElementById(target).classList.add("active");
+          }
           // Hide the menu after selection
           document.querySelector(".container").classList.remove("menu-active");
         });
