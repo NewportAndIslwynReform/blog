@@ -236,6 +236,33 @@
     .admin-only {
       display: none;
     }
+    /* New CSS for home page image boxes */
+    #homeImages {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .home-image-box {
+      width: 48%;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ddd;
+      box-shadow: 1px 1px 5px rgba(0,0,0,0.1);
+    }
+    .home-image-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* In edit mode, show drop zones side by side */
+    #homeEditImageContainer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    #homeEditImageContainer .drop-zone {
+      width: 48%;
+    }
   </style>
 </head>
 <body>
@@ -642,9 +669,18 @@
           container.innerText = "No home data found.";
           return;
         }
+        // Note: Any <a href="http://www.reformparty.uk"> tag has been removed from this section.
         let html = `<div id="homeDisplay">
                       <h2>${homeData.title}</h2>
                       <p>${homeData.content}</p>
+                    </div>
+                    <div id="homeImages">
+                      <div class="home-image-box">
+                        <img id="homeImage1" src="${homeData.image_1 || 'https://placehold.co/300x200'}" alt="Image 1">
+                      </div>
+                      <div class="home-image-box">
+                        <img id="homeImage2" src="${homeData.image_2 || 'https://placehold.co/300x200'}" alt="Image 2">
+                      </div>
                     </div>`;
         if (adminMode) {
           html += `<div class="controls">
@@ -1011,24 +1047,92 @@
       function cancelEditMinutes(id) {
         renderMeetingMinutes();
       }
-      // Home inline editing
+      // Home inline editing for admin mode – now includes drag & drop for images
       function startEditHome() {
         const container = document.getElementById("homeTab");
         container.innerHTML = `<form class="edit-form" onsubmit="submitEditHome(event)">
                                  <input type="text" id="editHomeTitle" value="${homeData.title}" required>
                                  <textarea id="editHomeContent" rows="6" style="overflow-y: auto; height:150px;" required>${homeData.content}</textarea>
+                                 <div id="homeEditImageContainer">
+                                   <div class="drop-zone" id="dropZoneImage1">
+                                     <img id="homeImage1" src="${homeData.image_1 || 'https://placehold.co/300x200'}" alt="Image 1">
+                                     <p>Drag & drop an image for Image 1 here</p>
+                                   </div>
+                                   <div class="drop-zone" id="dropZoneImage2">
+                                     <img id="homeImage2" src="${homeData.image_2 || 'https://placehold.co/300x200'}" alt="Image 2">
+                                     <p>Drag & drop an image for Image 2 here</p>
+                                   </div>
+                                 </div>
                                  <button type="submit">Save</button>
                                  <button type="button" onclick="cancelEditHome()">Cancel</button>
                                </form>`;
+        // Set up drag & drop for image 1
+        const dropZone1 = document.getElementById("dropZoneImage1");
+        const homeImage1 = document.getElementById("homeImage1");
+        dropZone1.addEventListener("dragover", function(e) {
+          e.preventDefault();
+          dropZone1.classList.add("drop-zone--over");
+        });
+        dropZone1.addEventListener("dragleave", function(e) {
+          e.preventDefault();
+          dropZone1.classList.remove("drop-zone--over");
+        });
+        dropZone1.addEventListener("drop", function(e) {
+          e.preventDefault();
+          dropZone1.classList.remove("drop-zone--over");
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith("image/")) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                homeImage1.src = e.target.result;
+              };
+              reader.readAsDataURL(file);
+            } else {
+              alert("Please drop an image file.");
+            }
+          }
+        });
+        // Set up drag & drop for image 2
+        const dropZone2 = document.getElementById("dropZoneImage2");
+        const homeImage2 = document.getElementById("homeImage2");
+        dropZone2.addEventListener("dragover", function(e) {
+          e.preventDefault();
+          dropZone2.classList.add("drop-zone--over");
+        });
+        dropZone2.addEventListener("dragleave", function(e) {
+          e.preventDefault();
+          dropZone2.classList.remove("drop-zone--over");
+        });
+        dropZone2.addEventListener("drop", function(e) {
+          e.preventDefault();
+          dropZone2.classList.remove("drop-zone--over");
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (file.type.startsWith("image/")) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                homeImage2.src = e.target.result;
+              };
+              reader.readAsDataURL(file);
+            } else {
+              alert("Please drop an image file.");
+            }
+          }
+        });
       }
       async function submitEditHome(e) {
         e.preventDefault();
         const newTitle = document.getElementById("editHomeTitle").value;
         const newContent = document.getElementById("editHomeContent").value;
-        console.log("submitEditHome called", newTitle, newContent);
+        const newImage1 = document.getElementById("homeImage1").src;
+        const newImage2 = document.getElementById("homeImage2").src;
+        console.log("submitEditHome called", newTitle, newContent, newImage1, newImage2);
         const { error } = await supabaseClient
           .from("home")
-          .update({ title: newTitle, content: newContent })
+          .update({ title: newTitle, content: newContent, image_1: newImage1, image_2: newImage2 })
           .eq("id", Number(homeData.id));
         if (error) {
           alert("Error updating home data: " + error.message);
