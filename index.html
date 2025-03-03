@@ -541,6 +541,37 @@
         }
       }
 
+      // New: Function to update the Counter table
+      async function updateCounter() {
+        // Fetch the current counter row (assumes a single row exists)
+        const { data, error } = await supabaseClient
+          .from("Counter")
+          .select("*")
+          .limit(1);
+        if (error) {
+          console.error("Error fetching counter:", error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const counterRow = data[0];
+          const newTotal = (counterRow.total_visits || 0) + 1;
+          const currentTime = new Date().toISOString();
+          const { error: updateError } = await supabaseClient
+            .from("Counter")
+            .update({
+              total_visits: newTotal,
+              last_visit: currentTime
+            })
+            .eq("id", counterRow.id);
+          if (updateError) {
+            console.error("Error updating counter:", updateError);
+          }
+        }
+      }
+
+      // New: Call updateCounter on page load
+      updateCounter();
+
       // New: News Add/Edit/Delete Functions
       async function addNewsItem(date, title, text, image) {
         const { error } = await supabaseClient
@@ -669,7 +700,7 @@
           container.innerText = "No home data found.";
           return;
         }
-        // Note: Any <a href="http://www.reformparty.uk"> tag has been removed from this section.
+        // Note: The unnecessary <a href="http://www.reformparty.uk"> tag has been removed.
         let html = `<div id="homeDisplay">
                       <h2>${homeData.title}</h2>
                       <p>${homeData.content}</p>
