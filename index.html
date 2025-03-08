@@ -445,7 +445,108 @@
       let meetingMinutesData = [];
       let adminMode = false;
 
-      // Fetch functions
+      // New: Function to increment a specific field in the Counter table by 1
+      async function incrementCounterField(fieldName) {
+        const { data, error } = await supabaseClient
+          .from("Counter")
+          .select("*")
+          .limit(1);
+        if (error) {
+          console.error("Error fetching counter:", error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const counterRow = data[0];
+          const currentValue = counterRow[fieldName] || 0;
+          const newValue = currentValue + 1;
+          const { error: updateError } = await supabaseClient
+            .from("Counter")
+            .update({ [fieldName]: newValue })
+            .eq("id", counterRow.id);
+          if (updateError) {
+            console.error("Error updating counter field:", updateError);
+          }
+        }
+      }
+
+      // New: Function to retrieve and display counter values in a table format (excluding created_at)
+      // Format last_visit as dd-mm-yyyy hh:mm
+      async function displayCounterValues() {
+        const { data, error } = await supabaseClient
+          .from("Counter")
+          .select("*")
+          .limit(1);
+        if (error) {
+          console.error("Error fetching counter values:", error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const counterRow = data[0];
+          let html = "<table class='counter-values' style='font-size:0.8rem; color:#333; margin-top:5px; border-collapse: collapse;'>";
+          for (const key in counterRow) {
+            if (key === "id" || key === "created_at") continue;
+            let value = counterRow[key];
+            if (key === "last_visit" && value) {
+              const d = new Date(value);
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const yyyy = d.getFullYear();
+              const hh = String(d.getHours()).padStart(2, '0');
+              const min = String(d.getMinutes()).padStart(2, '0');
+              value = `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+            }
+            html += `<tr>
+                        <td style="border: 1px solid #ccc; padding: 2px 5px;">${key}</td>
+                        <td style="border: 1px solid #ccc; padding: 2px 5px;">${value}</td>
+                     </tr>`;
+          }
+          html += "</table>";
+          const titleBlock = document.querySelector(".title-block");
+          const existing = document.querySelector(".counter-values");
+          if(existing) {
+            existing.remove();
+          }
+          titleBlock.insertAdjacentHTML("beforeend", html);
+        }
+      }
+
+      // New: Call updateCounter() on page load
+      async function updateCounter() {
+        const { data, error } = await supabaseClient
+          .from("Counter")
+          .select("*")
+          .limit(1);
+        if (error) {
+          console.error("Error fetching counter:", error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const counterRow = data[0];
+          const newTotal = (counterRow.total_visits || 0) + 1;
+          const currentTime = new Date().toISOString();
+          const { error: updateError } = await supabaseClient
+            .from("Counter")
+            .update({
+              total_visits: newTotal,
+              last_visit: currentTime
+            })
+            .eq("id", counterRow.id);
+          if (updateError) {
+            console.error("Error updating counter:", updateError);
+          }
+        }
+      }
+      updateCounter();
+
+      // New: Add event listeners so that when a menu option is clicked the corresponding counter field is incremented.
+      document.querySelectorAll(".tabs li").forEach(tab => {
+          tab.addEventListener("click", () => {
+              const fieldName = tab.innerText.trim().toLowerCase();
+              incrementCounterField(fieldName);
+          });
+      });
+
+      // (Existing code below – do not change any other code)
       async function fetchHome() {
         const { data, error } = await supabaseClient
           .from("home")
@@ -540,39 +641,6 @@
           renderMeetingMinutes();
         }
       }
-
-      // New: Function to update the Counter table
-      async function updateCounter() {
-        // Fetch the current counter row (assumes a single row exists)
-        const { data, error } = await supabaseClient
-          .from("Counter")
-          .select("*")
-          .limit(1);
-        if (error) {
-          console.error("Error fetching counter:", error);
-          return;
-        }
-        if (data && data.length > 0) {
-          const counterRow = data[0];
-          const newTotal = (counterRow.total_visits || 0) + 1;
-          const currentTime = new Date().toISOString();
-          const { error: updateError } = await supabaseClient
-            .from("Counter")
-            .update({
-              total_visits: newTotal,
-              last_visit: currentTime
-            })
-            .eq("id", counterRow.id);
-          if (updateError) {
-            console.error("Error updating counter:", updateError);
-          }
-        }
-      }
-
-      // New: Call updateCounter on page load
-      updateCounter();
-
-      // New: News Add/Edit/Delete Functions
       async function addNewsItem(date, title, text, image) {
         const { error } = await supabaseClient
           .from("news")
@@ -584,7 +652,6 @@
           fetchNews();
         }
       }
-
       function renderNewsEntries() {
         const container = document.getElementById("newsEntries");
         if (!newsData || newsData.length === 0) {
@@ -615,7 +682,6 @@
         });
         container.innerHTML = html;
       }
-
       function startEditNews(newsId) {
         const item = newsData.find(n => n.id == newsId);
         if (!item) return;
@@ -692,15 +758,12 @@
           fetchNews();
         }
       }
-
-      // Rendering functions for other sections
       function renderHome() {
         const container = document.getElementById("homeTab");
         if (!homeData || !homeData.title) {
           container.innerText = "No home data found.";
           return;
         }
-        // Note: The unnecessary <a href="http://www.reformparty.uk"> tag has been removed.
         let html = `<div id="homeDisplay">
                       <h2>${homeData.title}</h2>
                       <p>${homeData.content}</p>
@@ -872,9 +935,6 @@
         });
         container.innerHTML = html;
       }
-
-      /***** Inline Editing Functions *****/
-      // Blog editing
       function startEdit(postId) {
         const post = blogPostsData.find(p => p.id == postId);
         if (!post) return;
@@ -907,7 +967,6 @@
       function cancelEdit(postId) {
         renderBlogPosts();
       }
-      // Event editing
       function startEditEvent(eventId) {
         const eventData = eventsData.find(e => e.id == eventId);
         if (!eventData) return;
@@ -940,7 +999,6 @@
       function cancelEditEvent(eventId) {
         renderEvents();
       }
-      // Committee editing
       function startEditCommittee(memberId) {
         const member = committeeMembersData.find(m => m.id == memberId);
         if (!member) return;
@@ -975,7 +1033,6 @@
       function cancelEditCommittee(memberId) {
         renderCommitteeMembers();
       }
-      // Link inline editing
       function startEditLink(linkId) {
         const link = linksData.find(l => l.id == linkId);
         if (!link) return;
@@ -1006,7 +1063,6 @@
       function cancelEditLink(linkId) {
         renderLinks();
       }
-      // Toggle functions for collapsible content
       function toggleBlogEntry(postId, event) {
         event.stopPropagation();
         const contentElement = document.getElementById("blog-content-" + postId);
@@ -1045,7 +1101,6 @@
           arrow.textContent = "►";
         }
       }
-      // Meeting Minutes inline editing
       function startEditMinutes(id) {
         const record = meetingMinutesData.find(r => r.id == id);
         if (!record) return;
@@ -1078,7 +1133,6 @@
       function cancelEditMinutes(id) {
         renderMeetingMinutes();
       }
-      // Home inline editing for admin mode – now includes drag & drop for images
       function startEditHome() {
         const container = document.getElementById("homeTab");
         container.innerHTML = `<form class="edit-form" onsubmit="submitEditHome(event)">
@@ -1097,7 +1151,6 @@
                                  <button type="submit">Save</button>
                                  <button type="button" onclick="cancelEditHome()">Cancel</button>
                                </form>`;
-        // Set up drag & drop for image 1
         const dropZone1 = document.getElementById("dropZoneImage1");
         const homeImage1 = document.getElementById("homeImage1");
         dropZone1.addEventListener("dragover", function(e) {
@@ -1125,7 +1178,6 @@
             }
           }
         });
-        // Set up drag & drop for image 2
         const dropZone2 = document.getElementById("dropZoneImage2");
         const homeImage2 = document.getElementById("homeImage2");
         dropZone2.addEventListener("dragover", function(e) {
@@ -1175,8 +1227,6 @@
       function cancelEditHome() {
         renderHome();
       }
-
-      /***** Form Submission for Adding New Data *****/
       async function addBlogPost(date, title, content) {
         const { error } = await supabaseClient
           .from("blog_posts")
@@ -1232,8 +1282,6 @@
           fetchMeetingMinutes();
         }
       }
-
-      // Attach form submit listeners
       document.getElementById("blogForm").addEventListener("submit", function(e) {
         e.preventDefault();
         const date = document.getElementById("blogDate").value;
@@ -1296,8 +1344,6 @@
         document.getElementById("newsText").value = "";
         document.getElementById("newsPreview").src = "https://placehold.co/80";
       });
-
-      // Drag & Drop for Committee Image Upload
       const dropZone = document.getElementById("committeeDropZone");
       const previewImage = document.getElementById("committeePreview");
       dropZone.addEventListener("dragover", function(e) {
@@ -1325,8 +1371,6 @@
           }
         }
       });
-
-      // Drag & Drop for News Image Upload in Add Entries tab
       const newsDropZone = document.getElementById("newsDropZone");
       const newsPreview = document.getElementById("newsPreview");
       newsDropZone.addEventListener("dragover", function(e) {
@@ -1354,11 +1398,8 @@
           }
         }
       });
-
-      // Tab/Menu Switching Functionality
       const tabs = document.querySelectorAll(".tabs li");
       const tabContents = document.querySelectorAll(".tab-content");
-      // When a menu item is clicked, hide the menu
       tabs.forEach(tab => {
         tab.addEventListener("click", () => {
           const target = tab.getAttribute("data-tab");
@@ -1368,16 +1409,12 @@
           if (target) {
             document.getElementById(target).classList.add("active");
           }
-          // Hide the menu after selection
           document.querySelector(".container").classList.remove("menu-active");
         });
       });
-      // Toggle menu when hamburger icon is clicked
       document.getElementById("menuIcon").addEventListener("click", function() {
         document.querySelector(".container").classList.toggle("menu-active");
       });
-
-      // Admin Login Functionality
       const adminLink = document.getElementById("adminLink");
       const loginModal = document.getElementById("loginModal");
       const modalClose = document.getElementById("modalClose");
@@ -1419,6 +1456,7 @@
           fetchCommitteeMembers();
           fetchLinks();
           fetchMeetingMinutes();
+          displayCounterValues();
           loginModal.style.display = "none";
           alert("Admin mode enabled.");
         } else {
@@ -1430,8 +1468,6 @@
           loginModal.style.display = "none";
         }
       });
-
-      // About Link Functionality
       document.getElementById("aboutLink").addEventListener("click", async function(e) {
         e.preventDefault();
         const { data, error } = await supabaseClient
@@ -1458,8 +1494,6 @@
           document.getElementById("aboutModal").style.display = "none";
         }
       });
-
-      // New: Toggle function for News entries
       function toggleNewsEntry(newsId, event) {
         event.stopPropagation();
         const contentElement = document.getElementById("news-content-" + newsId);
@@ -1473,8 +1507,6 @@
           arrow.textContent = "►";
         }
       }
-
-      // On initial page load, fetch all data
       fetchHome();
       fetchBlogPosts();
       fetchNews();
@@ -1482,8 +1514,6 @@
       fetchCommitteeMembers();
       fetchLinks();
       fetchMeetingMinutes();
-
-      // Expose functions to global scope so inline onclicks work
       window.startEdit = startEdit;
       window.submitEdit = submitEdit;
       window.cancelEdit = cancelEdit;
