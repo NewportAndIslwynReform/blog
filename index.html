@@ -838,6 +838,7 @@
         });
         container.innerHTML = html;
       }
+      // Corrected renderEvents() function: renamed iterator variable to "evt" and now generates buttons with a class.
       function renderEvents() {
         const container = document.getElementById("eventList");
         if (!eventsData || eventsData.length === 0) {
@@ -845,20 +846,28 @@
           return;
         }
         let html = "";
-        eventsData.forEach(event => {
-          html += `<div class="post" data-id="${event.id}">
-                     <p><strong>${formatDate(event.date)}</strong></p>
-                     <h2>${event.title}</h2>
-                     <p>${event.description}</p>`;
+        eventsData.forEach(evt => {
+          html += `<div class="post" data-id="${evt.id}">
+                     <p><strong>${formatDate(evt.date)}</strong></p>
+                     <h2>${evt.title}</h2>
+                     <p>${evt.description}</p>`;
           if (adminMode) {
             html += `<div class="controls">
-                       <button onclick="startEditEvent(${event.id})">Edit</button>
-                       <button onclick="deleteEvent(${event.id})">Delete</button>
+                       <button class="edit-event-btn" data-id="${evt.id}">Edit</button>
+                       <button onclick="deleteEvent(${evt.id})">Delete</button>
                      </div>`;
           }
           html += `</div>`;
         });
         container.innerHTML = html;
+        // Attach event listeners to new edit buttons
+        document.querySelectorAll('.edit-event-btn').forEach(button => {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.getAttribute('data-id');
+            startEditEvent(id);
+          });
+        });
       }
       function renderCommitteeMembers() {
         const container = document.getElementById("committeeList");
@@ -970,10 +979,14 @@
       function startEditEvent(eventId) {
         const eventData = eventsData.find(e => e.id == eventId);
         if (!eventData) return;
-        const eventDiv = document.querySelector(`.post[data-id="${eventId}"]`);
+        const eventDiv = document.querySelector('.post[data-id="' + eventId + '"]');
+        if (!eventDiv) {
+          console.error("No event div found for eventId:", eventId);
+          return;
+        }
         eventDiv.innerHTML = `<form class="edit-form" onsubmit="submitEditEvent(event, ${eventId})">
                                <input type="text" id="editEventTitle_${eventId}" value="${eventData.title}" required>
-                               <input type="date" id="editEventDate_${eventId}" value="${eventData.date}" required>
+                               <input type="date" id="editEventDate_${eventId}" value="${eventData.date ? eventData.date.split('T')[0] : ''}" required>
                                <textarea id="editEventDescription_${eventId}" rows="4" required>${eventData.description}</textarea>
                                <button type="submit">Save</button>
                                <button type="button" onclick="cancelEditEvent(${eventId})">Cancel</button>
@@ -998,6 +1011,19 @@
       }
       function cancelEditEvent(eventId) {
         renderEvents();
+      }
+      // NEW: Function to delete an event
+      async function deleteEvent(eventId) {
+        const { error } = await supabaseClient
+          .from("events")
+          .delete()
+          .eq("id", eventId);
+        if (error) {
+          alert("Error deleting event: " + error.message);
+          console.error("Error deleting event:", error);
+        } else {
+          fetchEvents();
+        }
       }
       function startEditCommittee(memberId) {
         const member = committeeMembersData.find(m => m.id == memberId);
@@ -1520,6 +1546,7 @@
       window.startEditEvent = startEditEvent;
       window.submitEditEvent = submitEditEvent;
       window.cancelEditEvent = cancelEditEvent;
+      window.deleteEvent = deleteEvent;
       window.startEditCommittee = startEditCommittee;
       window.submitEditCommittee = submitEditCommittee;
       window.cancelEditCommittee = cancelEditCommittee;
